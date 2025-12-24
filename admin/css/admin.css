@@ -1,0 +1,373 @@
+/**
+ * Admin Styles
+ *
+ * @package Altitude_Audit
+ */
+
+.altitude-audit-admin {
+    max-width: 1200px;
+}
+
+/* Dashboard */
+.altitude-audit-dashboard {
+    margin-top: 20px;
+}
+
+.altitude-audit-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stat-icon {
+    font-size: 40px;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #667eea;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Cards */
+.altitude-audit-card {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.altitude-audit-card h2 {
+    margin-top: 0;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+}
+
+/* Actions */
+.altitude-audit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.altitude-audit-actions .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Shortcodes */
+.shortcode-list {
+    display: grid;
+    gap: 15px;
+}
+
+.shortcode-item {
+    background: #f7f9fc;
+    padding: 15px;
+    border-left: 4px solid #667eea;
+    border-radius: 4px;
+}
+
+.shortcode-item code {
+    background: #667eea;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.shortcode-item p {
+    margin: 10px 0 0 0;
+    color: #666;
+}
+
+/* Getting Started */
+.getting-started-list {
+    counter-reset: step-counter;
+    list-style: none;
+    padding-left: 0;
+}
+
+.getting-started-list li {
+    counter-increment: step-counter;
+    margin-bottom: 25px;
+    padding-left: 50px;
+    position: relative;
+}
+
+.getting-started-list li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.getting-started-list strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.getting-started-list p {
+    margin: 0;
+    color: #666;
+}
+
+/* Statistics */
+.stats-overview {
+    text-align: center;
+    padding: 20px;
+}
+
+.stat-large .stat-number {
+    font-size: 48px;
+    font-weight: bold;
+    color: #667eea;
+    line-height: 1;
+}
+
+.stat-large .stat-label {
+    font-size: 18px;
+    color: #666;
+    margin-top: 10px;
+}
+
+.type-stats,
+.avg-scores {
+    display: grid;
+    gap: 15px;
+}
+
+.type-stat-row,
+.avg-score-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 80px;
+    gap: 15px;
+    align-items: center;
+}
+
+.type-label,
+.avg-label {
+    font-weight: 500;
+}
+
+.type-bar-container,
+.avg-bar-container {
+    background: #f0f0f0;
+    height: 30px;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.type-bar,
+.avg-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.type-count,
+.avg-value {
+    text-align: right;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Email Template */
+.template-editor {
+    margin: 20px 0;
+}
+
+#email-template-editor {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.merge-tags {
+    margin-top: 20px;
+}
+
+.merge-tag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.merge-tag-item {
+    background: #f7f9fc;
+    padding: 12px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.merge-tag-item code {
+    background: #667eea;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    align-self: flex-start;
+}
+
+.merge-tag-item span {
+    font-size: 13px;
+    color: #666;
+}
+
+.conditional-example {
+    background: #fff9e6;
+    padding: 15px;
+    border-left: 4px solid #f0ad4e;
+    border-radius: 4px;
+}
+
+.conditional-example code {
+    background: #f0ad4e;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+/* Email Preview Modal */
+#email-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100000;
+}
+
+.email-preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+}
+
+.email-preview-container {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    height: 90%;
+    margin: 5% auto;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.email-preview-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.email-preview-header h2 {
+    margin: 0;
+}
+
+.email-preview-close {
+    background: none;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    line-height: 1;
+    color: #666;
+}
+
+.email-preview-close:hover {
+    color: #000;
+}
+
+.email-preview-body {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+}
+
+#email-preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Import/Export */
+.import-export-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#import-area {
+    background: #f7f9fc;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .altitude-audit-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .altitude-audit-actions {
+        flex-direction: column;
+    }
+
+    .altitude-audit-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .type-stat-row,
+    .avg-score-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .type-count,
+    .avg-value {
+        text-align: left;
+    }
+
+    .merge-tag-grid {
+        grid-template-columns: 1fr;
+    }
+}

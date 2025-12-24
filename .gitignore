@@ -1,0 +1,32 @@
+# WordPress
+.DS_Store
+*.log
+*.swp
+*.bak
+*~
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Node modules (if using any build tools)
+node_modules/
+package-lock.json
+
+# Composer
+vendor/
+composer.lock
+
+# Environment files
+.env
+.env.local
+
+# Build files
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
