@@ -302,6 +302,9 @@ class Altitude_Audit_Form_Handler {
             ? $config['form_settings']['thank_you_message']
             : '<h1>Thank You!</h1><p>Your results have been submitted successfully.</p>';
 
+        // Decode HTML entities that WordPress may have added (e.g., {curly braces} -> &#123;...&#125;)
+        $thank_you_message = html_entity_decode( $thank_you_message, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
         // Get accountability type details
         $accountability_label = isset( $config['categories'][ $accountability_type ]['label'] )
             ? $config['categories'][ $accountability_type ]['label']
@@ -314,22 +317,23 @@ class Altitude_Audit_Form_Handler {
         // Get highest score (the accountability type score)
         $highest_score = $scores[ $accountability_type ];
 
-        // Prepare merge tags
+        // Prepare merge tags - start with common tags (escape user-submitted data)
         $merge_tags = array(
             '{first_name}' => esc_html( $result_data['first_name'] ),
             '{email}' => esc_html( $result_data['email'] ),
-            '{total_score}' => esc_html( $result_data['total_score'] ),
-            '{distraction_score}' => isset( $scores['distraction'] ) ? esc_html( $scores['distraction'] ) : '0',
-            '{comfort_score}' => isset( $scores['comfort'] ) ? esc_html( $scores['comfort'] ) : '0',
-            '{ego_score}' => isset( $scores['ego'] ) ? esc_html( $scores['ego'] ) : '0',
-            '{emotion_score}' => isset( $scores['emotion'] ) ? esc_html( $scores['emotion'] ) : '0',
-            '{boundaries_score}' => isset( $scores['boundaries'] ) ? esc_html( $scores['boundaries'] ) : '0',
-            '{spiritual_score}' => isset( $scores['spiritual'] ) ? esc_html( $scores['spiritual'] ) : '0',
+            '{total_score}' => (string) $result_data['total_score'],
             '{accountability_type}' => esc_html( $accountability_type ),
             '{accountability_type_label}' => esc_html( $accountability_label ),
             '{accountability_type_description}' => esc_html( $accountability_description ),
-            '{highest_score}' => esc_html( $highest_score ),
+            '{highest_score}' => (string) $highest_score,
         );
+
+        // Dynamically add all category scores
+        foreach ( $scores as $category_key => $category_score ) {
+            if ( $category_key !== 'total' ) {
+                $merge_tags[ '{' . $category_key . '_score}' ] = (string) $category_score;
+            }
+        }
 
         // Replace all merge tags
         $processed_message = str_replace(
