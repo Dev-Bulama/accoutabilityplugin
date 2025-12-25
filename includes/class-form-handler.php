@@ -297,22 +297,39 @@ class Altitude_Audit_Form_Handler {
      * @param array  $config Configuration.
      */
     private static function display_thank_you_page( $result_data, $scores, $accountability_type, $config ) {
-        // Get thank you message template
-        $thank_you_message = isset( $config['form_settings']['thank_you_message'] )
-            ? $config['form_settings']['thank_you_message']
-            : '<h1>Thank You!</h1><p>Your results have been submitted successfully.</p>';
+        // Get thank you message template - use default config if not set or empty
+        $thank_you_message = '';
+
+        if ( isset( $config['form_settings']['thank_you_message'] ) && ! empty( $config['form_settings']['thank_you_message'] ) ) {
+            $thank_you_message = $config['form_settings']['thank_you_message'];
+        } else {
+            // Fallback to default config thank you message
+            $default_config = altitude_audit_get_default_config();
+            $thank_you_message = $default_config['form_settings']['thank_you_message'];
+        }
 
         // Decode HTML entities that WordPress may have added (e.g., {curly braces} -> &#123;...&#125;)
         $thank_you_message = html_entity_decode( $thank_you_message, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-        // Get accountability type details
-        $accountability_label = isset( $config['categories'][ $accountability_type ]['label'] )
-            ? $config['categories'][ $accountability_type ]['label']
-            : self::get_type_label( $accountability_type, $config );
+        // Get accountability type details - check result_pages first, then categories
+        $accountability_label = '';
+        $accountability_description = '';
 
-        $accountability_description = isset( $config['categories'][ $accountability_type ]['description'] )
-            ? $config['categories'][ $accountability_type ]['description']
-            : '';
+        // Try to get from result_pages first (has the personalized labels like "The Drifter")
+        if ( isset( $config['result_pages'][ $accountability_type ]['label'] ) ) {
+            $accountability_label = $config['result_pages'][ $accountability_type ]['label'];
+        } elseif ( isset( $config['categories'][ $accountability_type ]['label'] ) ) {
+            $accountability_label = $config['categories'][ $accountability_type ]['label'];
+        } else {
+            $accountability_label = self::get_type_label( $accountability_type, $config );
+        }
+
+        // Get description from result_pages (has personalized descriptions)
+        if ( isset( $config['result_pages'][ $accountability_type ]['description'] ) ) {
+            $accountability_description = $config['result_pages'][ $accountability_type ]['description'];
+        } elseif ( isset( $config['categories'][ $accountability_type ]['description'] ) ) {
+            $accountability_description = $config['categories'][ $accountability_type ]['description'];
+        }
 
         // Get highest score (the accountability type score)
         $highest_score = $scores[ $accountability_type ];
