@@ -48,21 +48,22 @@ class Altitude_Audit_Form_Handler {
         // Determine accountability type
         $accountability_type = self::determine_accountability_type( $scores );
 
-        // Prepare result data
+        // Prepare result data (dynamic based on categories in scores)
         $result_data = array(
             'user_id' => get_current_user_id(),
             'submission_id' => 0, // We'll use the database ID as submission ID
             'first_name' => $form_data['first_name'],
             'email' => $form_data['email'],
-            'distraction_score' => $scores['distraction'],
-            'comfort_score' => $scores['comfort'],
-            'ego_score' => $scores['ego'],
-            'emotion_score' => $scores['emotion'],
-            'boundaries_score' => $scores['boundaries'],
-            'spiritual_score' => $scores['spiritual'],
             'total_score' => $scores['total'],
             'accountability_type' => $accountability_type,
         );
+
+        // Add all category scores dynamically
+        foreach ( $scores as $key => $value ) {
+            if ( $key !== 'total' ) {
+                $result_data[ $key . '_score' ] = $value;
+            }
+        }
 
         // Save to database
         $result_id = Altitude_Audit_Database::save_result( $result_data );
@@ -99,7 +100,17 @@ class Altitude_Audit_Form_Handler {
         // Quiz answers
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
+        // Validate config structure
+        if ( ! isset( $config['categories'] ) || ! is_array( $config['categories'] ) ) {
+            $config = altitude_audit_get_default_config();
+            update_option( 'altitude_audit_config', $config );
+        }
+
         foreach ( $config['categories'] as $category_key => $category ) {
+            if ( ! isset( $category['questions'] ) || ! is_array( $category['questions'] ) ) {
+                continue;
+            }
+
             foreach ( $category['questions'] as $index => $question ) {
                 $field_name = $category_key . '_q' . ( $index + 1 );
                 $sanitized[ $field_name ] = isset( $post_data[ $field_name ] ) ? absint( $post_data[ $field_name ] ) : null;
@@ -133,7 +144,17 @@ class Altitude_Audit_Form_Handler {
         // Validate all questions are answered
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
+        // Validate config structure
+        if ( ! isset( $config['categories'] ) || ! is_array( $config['categories'] ) ) {
+            $config = altitude_audit_get_default_config();
+            update_option( 'altitude_audit_config', $config );
+        }
+
         foreach ( $config['categories'] as $category_key => $category ) {
+            if ( ! isset( $category['questions'] ) || ! is_array( $category['questions'] ) ) {
+                continue;
+            }
+
             foreach ( $category['questions'] as $index => $question ) {
                 $field_name = $category_key . '_q' . ( $index + 1 );
 
@@ -141,7 +162,7 @@ class Altitude_Audit_Form_Handler {
                     $errors[] = sprintf(
                         /* translators: %s is the question text */
                         __( 'Please answer: %s', 'altitude-accountability-audit' ),
-                        $question['label']
+                        isset( $question['label'] ) ? $question['label'] : $field_name
                     );
                 }
             }
@@ -159,17 +180,21 @@ class Altitude_Audit_Form_Handler {
     private static function calculate_scores( $form_data ) {
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
-        $scores = array(
-            'distraction' => 0,
-            'comfort' => 0,
-            'ego' => 0,
-            'emotion' => 0,
-            'boundaries' => 0,
-            'spiritual' => 0,
-            'total' => 0,
-        );
+        // Validate config structure
+        if ( ! isset( $config['categories'] ) || ! is_array( $config['categories'] ) ) {
+            $config = altitude_audit_get_default_config();
+            update_option( 'altitude_audit_config', $config );
+        }
+
+        // Initialize scores array dynamically based on config
+        $scores = array( 'total' => 0 );
 
         foreach ( $config['categories'] as $category_key => $category ) {
+            if ( ! isset( $category['questions'] ) || ! is_array( $category['questions'] ) ) {
+                $scores[ $category_key ] = 0;
+                continue;
+            }
+
             $category_score = 0;
 
             foreach ( $category['questions'] as $index => $question ) {
