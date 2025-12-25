@@ -280,6 +280,9 @@ class Altitude_Audit_Admin {
             return altitude_audit_get_default_config();
         }
 
+        // Get current config to preserve categories and scoring options
+        $current_config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
         $sanitized = array();
 
         // Sanitize form settings
@@ -290,6 +293,8 @@ class Altitude_Audit_Admin {
                 'success_message' => isset( $input['form_settings']['success_message'] ) ? sanitize_textarea_field( $input['form_settings']['success_message'] ) : '',
                 'thank_you_message' => isset( $input['form_settings']['thank_you_message'] ) ? wp_kses_post( $input['form_settings']['thank_you_message'] ) : '',
             );
+        } else {
+            $sanitized['form_settings'] = $current_config['form_settings'];
         }
 
         // Sanitize email settings
@@ -300,29 +305,36 @@ class Altitude_Audit_Admin {
                 'subject' => sanitize_text_field( $input['email_settings']['subject'] ),
                 'send_to_admin' => ! empty( $input['email_settings']['send_to_admin'] ),
             );
+        } else {
+            $sanitized['email_settings'] = $current_config['email_settings'];
         }
 
         // Sanitize result pages
-        if ( isset( $input['result_pages'] ) ) {
+        if ( isset( $input['result_pages'] ) && is_array( $input['result_pages'] ) ) {
             $sanitized['result_pages'] = array();
 
             foreach ( $input['result_pages'] as $key => $page ) {
-                $sanitized['result_pages'][ $key ] = array(
-                    'label' => sanitize_text_field( $page['label'] ),
-                    'url' => esc_url_raw( $page['url'] ),
-                    'description' => sanitize_textarea_field( $page['description'] ),
-                );
+                if ( is_array( $page ) ) {
+                    $sanitized['result_pages'][ $key ] = array(
+                        'label' => isset( $page['label'] ) ? sanitize_text_field( $page['label'] ) : '',
+                        'url' => isset( $page['url'] ) ? esc_url_raw( $page['url'] ) : '',
+                        'description' => isset( $page['description'] ) ? sanitize_textarea_field( $page['description'] ) : '',
+                    );
+                }
             }
+        } else {
+            $sanitized['result_pages'] = isset( $current_config['result_pages'] ) ? $current_config['result_pages'] : array();
         }
 
-        // Keep scoring options and categories as they are (validated on form rebuild)
-        if ( isset( $input['scoring_options'] ) ) {
-            $sanitized['scoring_options'] = $input['scoring_options'];
-        }
+        // ALWAYS preserve scoring options and categories from current config
+        // These are only modified through Form Builder, not Settings page
+        $sanitized['scoring_options'] = isset( $current_config['scoring_options'] ) && is_array( $current_config['scoring_options'] )
+            ? $current_config['scoring_options']
+            : altitude_audit_get_default_config()['scoring_options'];
 
-        if ( isset( $input['categories'] ) ) {
-            $sanitized['categories'] = $input['categories'];
-        }
+        $sanitized['categories'] = isset( $current_config['categories'] ) && is_array( $current_config['categories'] )
+            ? $current_config['categories']
+            : altitude_audit_get_default_config()['categories'];
 
         return $sanitized;
     }

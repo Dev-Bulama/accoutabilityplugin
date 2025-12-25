@@ -23,6 +23,25 @@ class Altitude_Audit_Form_Builder {
     public static function render_form( $atts = array() ) {
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
+        // Validate config structure to prevent fatal errors
+        if ( ! isset( $config['categories'] ) || ! is_array( $config['categories'] ) || empty( $config['categories'] ) ) {
+            $config = altitude_audit_get_default_config();
+            // Save corrected config
+            update_option( 'altitude_audit_config', $config );
+        }
+
+        // Ensure scoring_options exists
+        if ( ! isset( $config['scoring_options'] ) || ! is_array( $config['scoring_options'] ) ) {
+            $default_config = altitude_audit_get_default_config();
+            $config['scoring_options'] = $default_config['scoring_options'];
+        }
+
+        // Ensure form_settings exists
+        if ( ! isset( $config['form_settings'] ) || ! is_array( $config['form_settings'] ) ) {
+            $default_config = altitude_audit_get_default_config();
+            $config['form_settings'] = $default_config['form_settings'];
+        }
+
         ob_start();
         ?>
         <div class="altitude-audit-form-wrapper">
