@@ -108,36 +108,6 @@
             $(this).closest('.altitude-question-wrapper').addClass('answered');
         });
 
-        // Auto-fill button (testing mode)
-        $('#altitude-autofill-btn').on('click', function(e) {
-            e.preventDefault();
-
-            // Fill in name and email
-            $('#first_name').val('John Tester');
-            $('#email').val('test@example.com');
-
-            // Randomly select answers for each question
-            $('input[type="radio"]').each(function() {
-                var name = $(this).attr('name');
-
-                // Skip if already filled (to avoid filling same question multiple times)
-                if ($('input[name="' + name + '"]:checked').length > 0) {
-                    return;
-                }
-
-                // Select a random option (0-3)
-                var randomValue = Math.floor(Math.random() * 4);
-                $('input[name="' + name + '"][value="' + randomValue + '"]').prop('checked', true).trigger('change');
-            });
-
-            // Scroll to submit button
-            $('html, body').animate({
-                scrollTop: $('.altitude-form-submit').offset().top - 100
-            }, 500);
-
-            alert('✓ Form auto-filled with random test data!');
-        });
-
         // Form validation before submit
         $form.on('submit', function(e) {
             var isValid = true;

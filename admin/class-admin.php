@@ -128,6 +128,16 @@ class Altitude_Audit_Admin {
             array( $this, 'display_builder_page' )
         );
 
+        // Templates submenu
+        add_submenu_page(
+            'altitude-audit',
+            __( 'Form Templates', 'altitude-accountability-audit' ),
+            __( 'Templates', 'altitude-accountability-audit' ),
+            'manage_options',
+            'altitude-audit-templates',
+            array( $this, 'display_templates_page' )
+        );
+
         // Settings submenu
         add_submenu_page(
             'altitude-audit',
@@ -156,6 +166,16 @@ class Altitude_Audit_Admin {
             'manage_options',
             'altitude-audit-email',
             array( $this, 'display_email_page' )
+        );
+
+        // Documentation submenu
+        add_submenu_page(
+            'altitude-audit',
+            __( 'Documentation', 'altitude-accountability-audit' ),
+            __( 'Documentation', 'altitude-accountability-audit' ),
+            'manage_options',
+            'altitude-audit-docs',
+            array( $this, 'display_documentation_page' )
         );
     }
 
@@ -192,6 +212,20 @@ class Altitude_Audit_Admin {
      */
     public function display_builder_page() {
         require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'admin/views/builder.php';
+    }
+
+    /**
+     * Display templates page.
+     */
+    public function display_templates_page() {
+        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'admin/views/templates.php';
+    }
+
+    /**
+     * Display documentation page.
+     */
+    public function display_documentation_page() {
+        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'admin/views/documentation.php';
     }
 
     /**
@@ -232,6 +266,7 @@ class Altitude_Audit_Admin {
         add_action( 'wp_ajax_altitude_audit_update_question', array( $this, 'ajax_update_question' ) );
         add_action( 'wp_ajax_altitude_audit_delete_question', array( $this, 'ajax_delete_question' ) );
         add_action( 'wp_ajax_altitude_audit_render_preview', array( $this, 'ajax_render_preview' ) );
+        add_action( 'wp_ajax_altitude_audit_apply_template', array( $this, 'ajax_apply_template' ) );
     }
 
     /**
@@ -641,5 +676,63 @@ class Altitude_Audit_Admin {
         $html = Altitude_Audit_Form_Builder::render_form();
 
         wp_send_json_success( array( 'html' => $html ) );
+    }
+
+    /**
+     * AJAX: Apply form template.
+     */
+    public function ajax_apply_template() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $template_id = sanitize_key( $_POST['template_id'] ?? '' );
+
+        if ( ! $template_id ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid template ID', 'altitude-accountability-audit' ) ) );
+        }
+
+        // Load templates
+        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'config/templates.php';
+        $templates = altitude_audit_get_templates();
+
+        if ( ! isset( $templates[ $template_id ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Template not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        $template = $templates[ $template_id ];
+
+        // Get current config to preserve form settings and result pages
+        $current_config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        // Build new config with template categories
+        $new_config = array(
+            'categories' => $template['categories'],
+            'scoring_options' => $current_config['scoring_options'],
+            'form_settings' => $current_config['form_settings'],
+            'email_settings' => $current_config['email_settings'],
+            'result_pages' => array(),
+        );
+
+        // Create result pages for each category
+        foreach ( $template['categories'] as $category_key => $category ) {
+            $new_config['result_pages'][ $category_key ] = array(
+                'label' => 'The ' . $category['label'],
+                'url' => '',
+                'description' => $category['description'],
+            );
+        }
+
+        // Update configuration
+        update_option( 'altitude_audit_config', $new_config );
+
+        wp_send_json_success( array(
+            'message' => sprintf(
+                __( 'Template "%s" applied successfully! Redirecting to Form Builder...', 'altitude-accountability-audit' ),
+                $template['name']
+            ),
+        ) );
     }
 }

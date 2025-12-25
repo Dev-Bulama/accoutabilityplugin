@@ -100,12 +100,6 @@ class Altitude_Audit_Form_Builder {
 
                 <!-- Submit Section -->
                 <div class="altitude-form-submit">
-                    <?php if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) : ?>
-                        <button type="button" id="altitude-autofill-btn" class="altitude-btn altitude-btn-secondary">
-                            <?php esc_html_e( '🧪 Auto-Fill (Test Mode)', 'altitude-accountability-audit' ); ?>
-                        </button>
-                    <?php endif; ?>
-
                     <button type="submit" class="altitude-btn altitude-btn-primary">
                         <?php echo esc_html( $config['form_settings']['submit_button_text'] ); ?>
                     </button>
