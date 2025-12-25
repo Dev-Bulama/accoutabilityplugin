@@ -115,9 +115,7 @@ class Altitude_Audit {
         add_shortcode( 'accountability_audit', array( $shortcodes, 'render_audit_form' ) );
         add_shortcode( 'audit_results', array( $shortcodes, 'render_user_results' ) );
 
-        // Form submission handler
-        $scoring_engine = new Altitude_Audit_Scoring_Engine();
-        $this->loader->add_action( 'fluentform/submission_inserted', $scoring_engine, 'process_submission', 10, 3 );
+        // Form handler is initialized in class-form-handler.php
     }
 
     /**

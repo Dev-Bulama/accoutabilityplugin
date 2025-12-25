@@ -265,7 +265,7 @@ class Altitude_Audit_Admin {
     }
 
     /**
-     * AJAX: Rebuild form.
+     * AJAX: Rebuild form (standalone version - form is always current).
      */
     public function ajax_rebuild_form() {
         check_ajax_referer( 'altitude_audit_admin', 'nonce' );
@@ -274,15 +274,10 @@ class Altitude_Audit_Admin {
             wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
         }
 
-        $form_id = Altitude_Audit_Form_Builder::create_audit_form();
-
-        if ( is_wp_error( $form_id ) ) {
-            wp_send_json_error( array( 'message' => $form_id->get_error_message() ) );
-        }
-
+        // In standalone mode, form is rendered from config each time
+        // No rebuild needed - just return success
         wp_send_json_success( array(
-            'message' => __( 'Form rebuilt successfully!', 'altitude-accountability-audit' ),
-            'form_id' => $form_id,
+            'message' => __( 'Form is always up-to-date! Changes to settings take effect immediately.', 'altitude-accountability-audit' ),
         ) );
     }
 
@@ -369,9 +364,7 @@ class Altitude_Audit_Admin {
             update_option( 'altitude_audit_email_template', $import_data['email_template'] );
         }
 
-        // Rebuild form with new config
-        Altitude_Audit_Form_Builder::create_audit_form();
-
+        // Form will automatically use new config on next render
         wp_send_json_success( array( 'message' => __( 'Configuration imported successfully!', 'altitude-accountability-audit' ) ) );
     }
 }

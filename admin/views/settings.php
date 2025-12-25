@@ -14,10 +14,7 @@ if ( isset( $_POST['altitude_audit_save_settings'] ) && check_admin_referer( 'al
     $config = $_POST['altitude_audit_config'];
     update_option( 'altitude_audit_config', $config );
 
-    echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved successfully!', 'altitude-accountability-audit' ) . '</p></div>';
-
-    // Rebuild form with new config
-    Altitude_Audit_Form_Builder::create_audit_form();
+    echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved successfully! Form will use new settings immediately.', 'altitude-accountability-audit' ) . '</p></div>';
 }
 
 $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
