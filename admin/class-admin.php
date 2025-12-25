@@ -231,6 +231,7 @@ class Altitude_Audit_Admin {
         add_action( 'wp_ajax_altitude_audit_add_question', array( $this, 'ajax_add_question' ) );
         add_action( 'wp_ajax_altitude_audit_update_question', array( $this, 'ajax_update_question' ) );
         add_action( 'wp_ajax_altitude_audit_delete_question', array( $this, 'ajax_delete_question' ) );
+        add_action( 'wp_ajax_altitude_audit_render_preview', array( $this, 'ajax_render_preview' ) );
     }
 
     /**
@@ -624,5 +625,21 @@ class Altitude_Audit_Admin {
         update_option( 'altitude_audit_config', $config );
 
         wp_send_json_success( array( 'message' => __( 'Question deleted successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Render form preview.
+     */
+    public function ajax_render_preview() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        // Render the form
+        $html = Altitude_Audit_Form_Builder::render_form();
+
+        wp_send_json_success( array( 'html' => $html ) );
     }
 }

@@ -1,535 +1,950 @@
 <?php
 /**
- * Form Builder view - Visual drag-and-drop form editor
+ * Form Builder view - Fluent Forms-style 3-panel drag-and-drop editor
  *
  * @package Altitude_Audit
  */
 
 if ( ! defined( 'WPINC' ) ) {
-    die;
+	die;
 }
 
 $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 ?>
 
-<div class="wrap altitude-audit-admin altitude-form-builder">
-    <h1><?php esc_html_e( 'Form Builder', 'altitude-accountability-audit' ); ?></h1>
-    <p class="description"><?php esc_html_e( 'Drag and drop to reorder categories and questions. Click to edit or delete.', 'altitude-accountability-audit' ); ?></p>
+<div class="altitude-form-builder-wrap">
+	<!-- Top Toolbar -->
+	<div class="builder-top-toolbar">
+		<div class="builder-logo">
+			<h1><?php esc_html_e( 'Form Builder', 'altitude-accountability-audit' ); ?></h1>
+		</div>
+		<div class="builder-actions">
+			<button type="button" class="button" id="save-builder-btn">
+				<span class="dashicons dashicons-yes"></span>
+				<?php esc_html_e( 'Save Changes', 'altitude-accountability-audit' ); ?>
+			</button>
+			<button type="button" class="button button-primary" id="publish-builder-btn">
+				<span class="dashicons dashicons-saved"></span>
+				<?php esc_html_e( 'Publish', 'altitude-accountability-audit' ); ?>
+			</button>
+		</div>
+	</div>
 
-    <div class="builder-container">
-        <!-- Builder Toolbar -->
-        <div class="builder-toolbar">
-            <button type="button" class="button button-primary" id="add-category-btn">
-                <span class="dashicons dashicons-plus"></span>
-                <?php esc_html_e( 'Add Category', 'altitude-accountability-audit' ); ?>
-            </button>
+	<!-- 3-Panel Layout -->
+	<div class="builder-main-container">
+		<!-- LEFT PANEL: Elements Library -->
+		<div class="builder-left-panel">
+			<div class="panel-header">
+				<h3><?php esc_html_e( 'Form Elements', 'altitude-accountability-audit' ); ?></h3>
+			</div>
+			<div class="elements-library">
+				<div class="element-group">
+					<h4><?php esc_html_e( 'Quiz Elements', 'altitude-accountability-audit' ); ?></h4>
+					<div class="element-item" draggable="true" data-element-type="category">
+						<span class="element-icon">📂</span>
+						<div class="element-info">
+							<strong><?php esc_html_e( 'Category Section', 'altitude-accountability-audit' ); ?></strong>
+							<small><?php esc_html_e( 'Group of questions', 'altitude-accountability-audit' ); ?></small>
+						</div>
+					</div>
+					<div class="element-item" draggable="true" data-element-type="question">
+						<span class="element-icon">❓</span>
+						<div class="element-info">
+							<strong><?php esc_html_e( 'Quiz Question', 'altitude-accountability-audit' ); ?></strong>
+							<small><?php esc_html_e( '4-point scale question', 'altitude-accountability-audit' ); ?></small>
+						</div>
+					</div>
+				</div>
 
-            <button type="button" class="button button-secondary" id="save-builder-btn">
-                <span class="dashicons dashicons-yes"></span>
-                <?php esc_html_e( 'Save Changes', 'altitude-accountability-audit' ); ?>
-            </button>
+				<div class="element-group">
+					<h4><?php esc_html_e( 'Form Fields', 'altitude-accountability-audit' ); ?></h4>
+					<div class="element-item disabled" title="<?php esc_attr_e( 'Name and Email fields are always included', 'altitude-accountability-audit' ); ?>">
+						<span class="element-icon">👤</span>
+						<div class="element-info">
+							<strong><?php esc_html_e( 'Personal Info', 'altitude-accountability-audit' ); ?></strong>
+							<small><?php esc_html_e( 'Name & Email (built-in)', 'altitude-accountability-audit' ); ?></small>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 
-            <button type="button" class="button" id="preview-form-btn">
-                <span class="dashicons dashicons-visibility"></span>
-                <?php esc_html_e( 'Preview Form', 'altitude-accountability-audit' ); ?>
-            </button>
-        </div>
+		<!-- CENTER PANEL: Live Preview -->
+		<div class="builder-center-panel">
+			<div class="panel-header">
+				<h3><?php esc_html_e( 'Form Preview', 'altitude-accountability-audit' ); ?></h3>
+				<div class="preview-actions">
+					<button type="button" class="button button-small" id="refresh-preview-btn">
+						<span class="dashicons dashicons-update"></span>
+						<?php esc_html_e( 'Refresh', 'altitude-accountability-audit' ); ?>
+					</button>
+				</div>
+			</div>
+			<div class="form-preview-container" id="form-preview-area">
+				<!-- Live form preview will be rendered here -->
+				<div class="form-preview-inner">
+					<?php echo Altitude_Audit_Form_Builder::render_form(); ?>
+				</div>
+			</div>
+		</div>
 
-        <!-- Categories List -->
-        <div id="categories-list" class="categories-list">
-            <?php foreach ( $config['categories'] as $category_key => $category ) : ?>
-                <div class="category-item" data-key="<?php echo esc_attr( $category_key ); ?>" draggable="true">
-                    <div class="category-header">
-                        <span class="drag-handle" title="<?php esc_attr_e( 'Drag to reorder', 'altitude-accountability-audit' ); ?>">
-                            <span class="dashicons dashicons-menu"></span>
-                        </span>
-
-                        <span class="category-icon"><?php echo esc_html( $category['icon'] ); ?></span>
-
-                        <h3 class="category-title"><?php echo esc_html( $category['label'] ); ?></h3>
-
-                        <div class="category-actions">
-                            <button type="button" class="button button-small edit-category-btn" title="<?php esc_attr_e( 'Edit category', 'altitude-accountability-audit' ); ?>">
-                                <span class="dashicons dashicons-edit"></span>
-                            </button>
-
-                            <button type="button" class="button button-small add-question-btn" title="<?php esc_attr_e( 'Add question', 'altitude-accountability-audit' ); ?>">
-                                <span class="dashicons dashicons-plus-alt"></span>
-                            </button>
-
-                            <button type="button" class="button button-small button-link-delete delete-category-btn" title="<?php esc_attr_e( 'Delete category', 'altitude-accountability-audit' ); ?>">
-                                <span class="dashicons dashicons-trash"></span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <?php if ( ! empty( $category['description'] ) ) : ?>
-                        <div class="category-description"><?php echo esc_html( $category['description'] ); ?></div>
-                    <?php endif; ?>
-
-                    <!-- Questions List -->
-                    <div class="questions-list" data-category="<?php echo esc_attr( $category_key ); ?>">
-                        <?php if ( ! empty( $category['questions'] ) ) : ?>
-                            <?php foreach ( $category['questions'] as $index => $question ) : ?>
-                                <div class="question-item" data-index="<?php echo esc_attr( $index ); ?>" draggable="true">
-                                    <span class="drag-handle" title="<?php esc_attr_e( 'Drag to reorder', 'altitude-accountability-audit' ); ?>">
-                                        <span class="dashicons dashicons-menu"></span>
-                                    </span>
-
-                                    <div class="question-content">
-                                        <div class="question-label"><?php echo esc_html( $question['label'] ); ?></div>
-                                        <?php if ( ! empty( $question['help_text'] ) ) : ?>
-                                            <div class="question-help"><?php echo esc_html( $question['help_text'] ); ?></div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="question-actions">
-                                        <button type="button" class="button button-small edit-question-btn" title="<?php esc_attr_e( 'Edit question', 'altitude-accountability-audit' ); ?>">
-                                            <span class="dashicons dashicons-edit"></span>
-                                        </button>
-
-                                        <button type="button" class="button button-small button-link-delete delete-question-btn" title="<?php esc_attr_e( 'Delete question', 'altitude-accountability-audit' ); ?>">
-                                            <span class="dashicons dashicons-trash"></span>
-                                        </button>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else : ?>
-                            <div class="no-questions">
-                                <p><?php esc_html_e( 'No questions yet. Click "Add Question" to get started.', 'altitude-accountability-audit' ); ?></p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <?php if ( empty( $config['categories'] ) ) : ?>
-            <div class="no-categories">
-                <p><?php esc_html_e( 'No categories yet. Click "Add Category" to get started.', 'altitude-accountability-audit' ); ?></p>
-            </div>
-        <?php endif; ?>
-    </div>
+		<!-- RIGHT PANEL: Field Settings -->
+		<div class="builder-right-panel">
+			<div class="panel-header">
+				<h3><?php esc_html_e( 'Field Settings', 'altitude-accountability-audit' ); ?></h3>
+			</div>
+			<div class="settings-panel-content" id="settings-panel">
+				<div class="no-selection-message">
+					<span class="dashicons dashicons-admin-settings"></span>
+					<p><?php esc_html_e( 'Click on a category or question to edit its settings', 'altitude-accountability-audit' ); ?></p>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
-<!-- Category Edit Modal -->
-<div id="category-modal" class="altitude-modal" style="display:none;">
-    <div class="altitude-modal-overlay"></div>
-    <div class="altitude-modal-content">
-        <div class="altitude-modal-header">
-            <h2 id="category-modal-title"><?php esc_html_e( 'Edit Category', 'altitude-accountability-audit' ); ?></h2>
-            <button type="button" class="altitude-modal-close">&times;</button>
-        </div>
-        <div class="altitude-modal-body">
-            <form id="category-form">
-                <input type="hidden" id="category-key" name="key">
+<!-- Category Settings Template -->
+<script type="text/template" id="category-settings-template">
+	<div class="settings-section">
+		<h4><?php esc_html_e( 'Category Settings', 'altitude-accountability-audit' ); ?></h4>
+		<input type="hidden" id="edit-category-key" value="{{key}}">
 
-                <p>
-                    <label for="category-label"><?php esc_html_e( 'Category Name', 'altitude-accountability-audit' ); ?></label>
-                    <input type="text" id="category-label" name="label" class="regular-text" required>
-                </p>
+		<div class="setting-field">
+			<label for="edit-category-label"><?php esc_html_e( 'Category Name', 'altitude-accountability-audit' ); ?></label>
+			<input type="text" id="edit-category-label" class="regular-text" value="{{label}}" placeholder="<?php esc_attr_e( 'e.g., Distraction', 'altitude-accountability-audit' ); ?>">
+		</div>
 
-                <p>
-                    <label for="category-icon"><?php esc_html_e( 'Icon (emoji)', 'altitude-accountability-audit' ); ?></label>
-                    <input type="text" id="category-icon" name="icon" class="small-text" maxlength="2">
-                    <span class="description"><?php esc_html_e( 'Single emoji character', 'altitude-accountability-audit' ); ?></span>
-                </p>
+		<div class="setting-field">
+			<label for="edit-category-icon"><?php esc_html_e( 'Icon (Emoji)', 'altitude-accountability-audit' ); ?></label>
+			<input type="text" id="edit-category-icon" class="small-text" value="{{icon}}" maxlength="2" placeholder="📱">
+			<p class="description"><?php esc_html_e( 'Single emoji character', 'altitude-accountability-audit' ); ?></p>
+		</div>
 
-                <p>
-                    <label for="category-description"><?php esc_html_e( 'Description', 'altitude-accountability-audit' ); ?></label>
-                    <textarea id="category-description" name="description" rows="3" class="large-text"></textarea>
-                </p>
-            </form>
-        </div>
-        <div class="altitude-modal-footer">
-            <button type="button" class="button button-primary" id="save-category-btn"><?php esc_html_e( 'Save Category', 'altitude-accountability-audit' ); ?></button>
-            <button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
-        </div>
-    </div>
+		<div class="setting-field">
+			<label for="edit-category-description"><?php esc_html_e( 'Description', 'altitude-accountability-audit' ); ?></label>
+			<textarea id="edit-category-description" rows="3" class="large-text" placeholder="<?php esc_attr_e( 'Describe this category...', 'altitude-accountability-audit' ); ?>">{{description}}</textarea>
+		</div>
+
+		<div class="setting-actions">
+			<button type="button" class="button button-primary button-large" id="update-category-btn">
+				<span class="dashicons dashicons-yes"></span>
+				<?php esc_html_e( 'Update Category', 'altitude-accountability-audit' ); ?>
+			</button>
+			<button type="button" class="button button-link-delete" id="delete-category-btn">
+				<span class="dashicons dashicons-trash"></span>
+				<?php esc_html_e( 'Delete Category', 'altitude-accountability-audit' ); ?>
+			</button>
+		</div>
+
+		<hr>
+
+		<div class="category-questions-section">
+			<h4><?php esc_html_e( 'Questions in this Category', 'altitude-accountability-audit' ); ?></h4>
+			<button type="button" class="button button-secondary button-large" id="add-question-to-category-btn">
+				<span class="dashicons dashicons-plus"></span>
+				<?php esc_html_e( 'Add Question', 'altitude-accountability-audit' ); ?>
+			</button>
+			<div class="questions-list-sidebar">
+				{{questions_html}}
+			</div>
+		</div>
+	</div>
+</script>
+
+<!-- Question Settings Template -->
+<script type="text/template" id="question-settings-template">
+	<div class="settings-section">
+		<h4><?php esc_html_e( 'Question Settings', 'altitude-accountability-audit' ); ?></h4>
+		<input type="hidden" id="edit-question-category" value="{{category}}">
+		<input type="hidden" id="edit-question-index" value="{{index}}">
+
+		<div class="setting-field">
+			<label for="edit-question-label"><?php esc_html_e( 'Question Text', 'altitude-accountability-audit' ); ?></label>
+			<textarea id="edit-question-label" rows="4" class="large-text" placeholder="<?php esc_attr_e( 'Enter your question here...', 'altitude-accountability-audit' ); ?>">{{label}}</textarea>
+		</div>
+
+		<div class="setting-field">
+			<label for="edit-question-help"><?php esc_html_e( 'Help Text (Optional)', 'altitude-accountability-audit' ); ?></label>
+			<input type="text" id="edit-question-help" class="large-text" value="{{help_text}}" placeholder="<?php esc_attr_e( 'Additional guidance...', 'altitude-accountability-audit' ); ?>">
+			<p class="description"><?php esc_html_e( 'This text appears below the question', 'altitude-accountability-audit' ); ?></p>
+		</div>
+
+		<div class="setting-field">
+			<label><?php esc_html_e( 'Answer Options', 'altitude-accountability-audit' ); ?></label>
+			<div class="answer-options-preview">
+				<div class="option-preview">0 points - Not true</div>
+				<div class="option-preview">1 point - Sometimes true</div>
+				<div class="option-preview">2 points - Often true</div>
+				<div class="option-preview">3 points - This is my pattern</div>
+			</div>
+			<p class="description"><?php esc_html_e( 'Standard 4-point scale for all questions', 'altitude-accountability-audit' ); ?></p>
+		</div>
+
+		<div class="setting-actions">
+			<button type="button" class="button button-primary button-large" id="update-question-btn">
+				<span class="dashicons dashicons-yes"></span>
+				<?php esc_html_e( 'Update Question', 'altitude-accountability-audit' ); ?>
+			</button>
+			<button type="button" class="button button-link-delete" id="delete-question-btn">
+				<span class="dashicons dashicons-trash"></span>
+				<?php esc_html_e( 'Delete Question', 'altitude-accountability-audit' ); ?>
+			</button>
+		</div>
+	</div>
+</script>
+
+<!-- Add Category Modal (Quick Add) -->
+<div id="add-category-modal" class="altitude-modal" style="display:none;">
+	<div class="altitude-modal-overlay"></div>
+	<div class="altitude-modal-content">
+		<div class="altitude-modal-header">
+			<h2><?php esc_html_e( 'Add New Category', 'altitude-accountability-audit' ); ?></h2>
+			<button type="button" class="altitude-modal-close">&times;</button>
+		</div>
+		<div class="altitude-modal-body">
+			<form id="add-category-form">
+				<p>
+					<label for="new-category-label"><?php esc_html_e( 'Category Name', 'altitude-accountability-audit' ); ?></label>
+					<input type="text" id="new-category-label" class="regular-text" required placeholder="<?php esc_attr_e( 'e.g., Distraction', 'altitude-accountability-audit' ); ?>">
+				</p>
+				<p>
+					<label for="new-category-icon"><?php esc_html_e( 'Icon (Emoji)', 'altitude-accountability-audit' ); ?></label>
+					<input type="text" id="new-category-icon" class="small-text" maxlength="2" placeholder="📱">
+				</p>
+			</form>
+		</div>
+		<div class="altitude-modal-footer">
+			<button type="button" class="button button-primary" id="create-category-btn"><?php esc_html_e( 'Create Category', 'altitude-accountability-audit' ); ?></button>
+			<button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
+		</div>
+	</div>
 </div>
 
-<!-- Question Edit Modal -->
-<div id="question-modal" class="altitude-modal" style="display:none;">
-    <div class="altitude-modal-overlay"></div>
-    <div class="altitude-modal-content">
-        <div class="altitude-modal-header">
-            <h2 id="question-modal-title"><?php esc_html_e( 'Edit Question', 'altitude-accountability-audit' ); ?></h2>
-            <button type="button" class="altitude-modal-close">&times;</button>
-        </div>
-        <div class="altitude-modal-body">
-            <form id="question-form">
-                <input type="hidden" id="question-category" name="category">
-                <input type="hidden" id="question-index" name="index">
-
-                <p>
-                    <label for="question-label"><?php esc_html_e( 'Question Text', 'altitude-accountability-audit' ); ?></label>
-                    <textarea id="question-label" name="label" rows="3" class="large-text" required></textarea>
-                </p>
-
-                <p>
-                    <label for="question-help"><?php esc_html_e( 'Help Text (optional)', 'altitude-accountability-audit' ); ?></label>
-                    <input type="text" id="question-help" name="help_text" class="large-text">
-                </p>
-            </form>
-        </div>
-        <div class="altitude-modal-footer">
-            <button type="button" class="button button-primary" id="save-question-btn"><?php esc_html_e( 'Save Question', 'altitude-accountability-audit' ); ?></button>
-            <button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
-        </div>
-    </div>
+<!-- Add Question Modal (Quick Add) -->
+<div id="add-question-modal" class="altitude-modal" style="display:none;">
+	<div class="altitude-modal-overlay"></div>
+	<div class="altitude-modal-content">
+		<div class="altitude-modal-header">
+			<h2><?php esc_html_e( 'Add New Question', 'altitude-accountability-audit' ); ?></h2>
+			<button type="button" class="altitude-modal-close">&times;</button>
+		</div>
+		<div class="altitude-modal-body">
+			<form id="add-question-form">
+				<input type="hidden" id="new-question-category">
+				<p>
+					<label for="new-question-label"><?php esc_html_e( 'Question Text', 'altitude-accountability-audit' ); ?></label>
+					<textarea id="new-question-label" rows="4" class="large-text" required placeholder="<?php esc_attr_e( 'Enter your question here...', 'altitude-accountability-audit' ); ?>"></textarea>
+				</p>
+			</form>
+		</div>
+		<div class="altitude-modal-footer">
+			<button type="button" class="button button-primary" id="create-question-btn"><?php esc_html_e( 'Create Question', 'altitude-accountability-audit' ); ?></button>
+			<button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
+		</div>
+	</div>
 </div>
 
-<!-- Now load the JavaScript -->
+<style>
+/* =======================
+   BUILDER WRAPPER
+   ======================= */
+.altitude-form-builder-wrap {
+	margin: -20px -20px -12px -2px;
+	background: #f8f9fa;
+	min-height: calc(100vh - 32px);
+	display: flex;
+	flex-direction: column;
+}
+
+/* =======================
+   TOP TOOLBAR
+   ======================= */
+.builder-top-toolbar {
+	background: white;
+	border-bottom: 1px solid #ddd;
+	padding: 15px 30px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.builder-logo h1 {
+	margin: 0;
+	font-size: 20px;
+	color: #667eea;
+}
+
+.builder-actions {
+	display: flex;
+	gap: 10px;
+}
+
+/* =======================
+   3-PANEL LAYOUT
+   ======================= */
+.builder-main-container {
+	display: grid;
+	grid-template-columns: 280px 1fr 320px;
+	gap: 0;
+	flex: 1;
+	overflow: hidden;
+}
+
+/* =======================
+   LEFT PANEL
+   ======================= */
+.builder-left-panel {
+	background: white;
+	border-right: 1px solid #ddd;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.panel-header {
+	padding: 20px;
+	border-bottom: 1px solid #e5e5e5;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.panel-header h3 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: #333;
+}
+
+.elements-library {
+	padding: 15px;
+}
+
+.element-group {
+	margin-bottom: 25px;
+}
+
+.element-group h4 {
+	font-size: 12px;
+	text-transform: uppercase;
+	color: #666;
+	margin: 0 0 12px 0;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+}
+
+.element-item {
+	background: #f7f9fc;
+	border: 2px solid #e5e5e5;
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 10px;
+	cursor: grab;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.element-item:hover {
+	border-color: #667eea;
+	background: #f0f3ff;
+	transform: translateX(5px);
+}
+
+.element-item.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.element-item.disabled:hover {
+	transform: none;
+	border-color: #e5e5e5;
+	background: #f7f9fc;
+}
+
+.element-item:active {
+	cursor: grabbing;
+}
+
+.element-icon {
+	font-size: 24px;
+	flex-shrink: 0;
+}
+
+.element-info {
+	flex: 1;
+}
+
+.element-info strong {
+	display: block;
+	font-size: 14px;
+	color: #333;
+	margin-bottom: 3px;
+}
+
+.element-info small {
+	font-size: 12px;
+	color: #666;
+}
+
+/* =======================
+   CENTER PANEL
+   ======================= */
+.builder-center-panel {
+	background: #f8f9fa;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.preview-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.form-preview-container {
+	flex: 1;
+	padding: 30px;
+	overflow-y: auto;
+}
+
+.form-preview-inner {
+	max-width: 900px;
+	margin: 0 auto;
+	background: white;
+	padding: 40px;
+	border-radius: 12px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Highlight elements on hover in preview */
+.form-preview-inner .altitude-category-section {
+	position: relative;
+	padding: 10px;
+	margin: -10px -10px 20px -10px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.form-preview-inner .altitude-category-section:hover {
+	background: rgba(102, 126, 234, 0.05);
+	outline: 2px solid #667eea;
+}
+
+.form-preview-inner .altitude-question-wrapper {
+	cursor: pointer;
+	position: relative;
+}
+
+.form-preview-inner .altitude-question-wrapper:hover {
+	outline: 2px solid #667eea;
+}
+
+/* =======================
+   RIGHT PANEL
+   ======================= */
+.builder-right-panel {
+	background: white;
+	border-left: 1px solid #ddd;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.settings-panel-content {
+	flex: 1;
+	padding: 20px;
+}
+
+.no-selection-message {
+	text-align: center;
+	color: #999;
+	padding: 60px 20px;
+}
+
+.no-selection-message .dashicons {
+	font-size: 64px;
+	width: 64px;
+	height: 64px;
+	margin-bottom: 15px;
+	opacity: 0.3;
+}
+
+.no-selection-message p {
+	margin: 0;
+	font-size: 14px;
+}
+
+/* Settings Fields */
+.settings-section h4 {
+	margin: 0 0 20px 0;
+	padding-bottom: 10px;
+	border-bottom: 2px solid #667eea;
+	color: #333;
+	font-size: 15px;
+}
+
+.setting-field {
+	margin-bottom: 20px;
+}
+
+.setting-field label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 8px;
+	color: #333;
+	font-size: 13px;
+}
+
+.setting-field input[type="text"],
+.setting-field textarea {
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.setting-field input[type="text"]:focus,
+.setting-field textarea:focus {
+	border-color: #667eea;
+	outline: none;
+	box-shadow: 0 0 0 1px #667eea;
+}
+
+.setting-field .description {
+	margin: 5px 0 0 0;
+	font-size: 12px;
+	color: #666;
+	font-style: italic;
+}
+
+.answer-options-preview {
+	background: #f7f9fc;
+	padding: 12px;
+	border-radius: 6px;
+	border: 1px solid #e5e5e5;
+}
+
+.option-preview {
+	padding: 8px;
+	margin-bottom: 6px;
+	background: white;
+	border-radius: 4px;
+	font-size: 12px;
+	color: #333;
+}
+
+.option-preview:last-child {
+	margin-bottom: 0;
+}
+
+.setting-actions {
+	margin-top: 30px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.setting-actions .button {
+	width: 100%;
+	justify-content: center;
+	height: auto;
+	padding: 10px 20px;
+}
+
+.questions-list-sidebar {
+	margin-top: 15px;
+	display: grid;
+	gap: 8px;
+}
+
+.question-sidebar-item {
+	background: #f7f9fc;
+	padding: 10px;
+	border-radius: 4px;
+	font-size: 13px;
+	border: 1px solid #e5e5e5;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.question-sidebar-item:hover {
+	border-color: #667eea;
+	background: #f0f3ff;
+}
+
+/* =======================
+   RESPONSIVE
+   ======================= */
+@media (max-width: 1400px) {
+	.builder-main-container {
+		grid-template-columns: 260px 1fr 300px;
+	}
+}
+
+@media (max-width: 1200px) {
+	.builder-main-container {
+		grid-template-columns: 240px 1fr 280px;
+	}
+}
+
+@media (max-width: 900px) {
+	.builder-main-container {
+		grid-template-columns: 1fr;
+	}
+
+	.builder-left-panel,
+	.builder-right-panel {
+		display: none;
+	}
+}
+</style>
+
 <script>
 jQuery(document).ready(function($) {
-    let draggedElement = null;
-    let draggedType = null; // 'category' or 'question'
-    let isDirty = false;
+	let selectedElement = null;
+	let selectedType = null; // 'category' or 'question'
+	let selectedData = null;
+	let config = <?php echo json_encode( $config ); ?>;
+	let isDirty = false;
 
-    // === DRAG AND DROP ===
+	// === CLICK TO SELECT ELEMENTS IN PREVIEW ===
 
-    // Category drag events
-    $('#categories-list').on('dragstart', '.category-item', function(e) {
-        draggedElement = this;
-        draggedType = 'category';
-        $(this).addClass('dragging');
-        e.originalEvent.dataTransfer.effectAllowed = 'move';
-    });
+	// Select category
+	$(document).on('click', '.form-preview-inner .altitude-category-section', function(e) {
+		e.stopPropagation();
+		const $section = $(this);
+		const categoryKey = $section.data('category-key');
 
-    $('#categories-list').on('dragend', '.category-item', function() {
-        $(this).removeClass('dragging');
-        draggedElement = null;
-        draggedType = null;
-        markDirty();
-    });
+		if (!categoryKey) return;
 
-    $('#categories-list').on('dragover', '.category-item', function(e) {
-        if (draggedType !== 'category') return;
-        e.preventDefault();
+		// Find category in config
+		const category = config.categories[categoryKey];
+		if (!category) return;
 
-        const afterElement = getDragAfterElement($('#categories-list')[0], e.originalEvent.clientY);
-        if (afterElement == null) {
-            $('#categories-list').append(draggedElement);
-        } else {
-            $('#categories-list')[0].insertBefore(draggedElement, afterElement);
-        }
-    });
+		selectCategory(categoryKey, category);
+	});
 
-    // Question drag events
-    $('.questions-list').on('dragstart', '.question-item', function(e) {
-        draggedElement = this;
-        draggedType = 'question';
-        $(this).addClass('dragging');
-        e.originalEvent.dataTransfer.effectAllowed = 'move';
-    });
+	// Select question
+	$(document).on('click', '.form-preview-inner .altitude-question-wrapper', function(e) {
+		e.stopPropagation();
+		const $question = $(this);
+		const categoryKey = $question.closest('.altitude-category-section').data('category-key');
+		const questionIndex = $question.data('question-index');
 
-    $('.questions-list').on('dragend', '.question-item', function() {
-        $(this).removeClass('dragging');
-        // Renumber questions
-        renumberQuestions($(this).closest('.questions-list'));
-        draggedElement = null;
-        draggedType = null;
-        markDirty();
-    });
+		if (!categoryKey || questionIndex === undefined) return;
 
-    $('.questions-list').on('dragover', '.question-item', function(e) {
-        if (draggedType !== 'question') return;
-        e.preventDefault();
+		const category = config.categories[categoryKey];
+		if (!category || !category.questions[questionIndex]) return;
 
-        const container = $(this).closest('.questions-list')[0];
-        const afterElement = getDragAfterElement(container, e.originalEvent.clientY);
+		selectQuestion(categoryKey, questionIndex, category.questions[questionIndex]);
+	});
 
-        if (afterElement == null) {
-            container.appendChild(draggedElement);
-        } else {
-            container.insertBefore(draggedElement, afterElement);
-        }
-    });
+	function selectCategory(key, category) {
+		selectedElement = key;
+		selectedType = 'category';
+		selectedData = category;
 
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.category-item:not(.dragging), .question-item:not(.dragging)')];
+		// Build questions HTML
+		let questionsHtml = '';
+		if (category.questions && category.questions.length > 0) {
+			category.questions.forEach((q, index) => {
+				questionsHtml += `<div class="question-sidebar-item" data-category="${key}" data-index="${index}">
+					${index + 1}. ${escapeHtml(q.label || 'Untitled Question')}
+				</div>`;
+			});
+		} else {
+			questionsHtml = '<p style="color:#999;font-size:12px;text-align:center;padding:20px 0;"><?php esc_html_e( 'No questions yet', 'altitude-accountability-audit' ); ?></p>';
+		}
 
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
+		// Render settings
+		let template = $('#category-settings-template').html();
+		template = template.replace(/{{key}}/g, key);
+		template = template.replace(/{{label}}/g, escapeHtml(category.label || ''));
+		template = template.replace(/{{icon}}/g, escapeHtml(category.icon || ''));
+		template = template.replace(/{{description}}/g, escapeHtml(category.description || ''));
+		template = template.replace(/{{questions_html}}/g, questionsHtml);
 
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
+		$('#settings-panel').html(template);
+	}
 
-    function renumberQuestions($list) {
-        $list.find('.question-item').each(function(index) {
-            $(this).attr('data-index', index);
-        });
-    }
+	function selectQuestion(categoryKey, index, question) {
+		selectedElement = { category: categoryKey, index: index };
+		selectedType = 'question';
+		selectedData = question;
 
-    function markDirty() {
-        isDirty = true;
-        $('#save-builder-btn').addClass('button-primary').removeClass('button-secondary');
-    }
+		// Render settings
+		let template = $('#question-settings-template').html();
+		template = template.replace(/{{category}}/g, categoryKey);
+		template = template.replace(/{{index}}/g, index);
+		template = template.replace(/{{label}}/g, escapeHtml(question.label || ''));
+		template = template.replace(/{{help_text}}/g, escapeHtml(question.help_text || ''));
 
-    // === ADD CATEGORY ===
+		$('#settings-panel').html(template);
+	}
 
-    $('#add-category-btn').on('click', function() {
-        $('#category-modal-title').text('<?php esc_html_e( 'Add New Category', 'altitude-accountability-audit' ); ?>');
-        $('#category-form')[0].reset();
-        $('#category-key').val(''); // Empty = new
-        $('#category-modal').fadeIn();
-    });
+	function escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
 
-    // === EDIT CATEGORY ===
+	// === UPDATE CATEGORY ===
 
-    $(document).on('click', '.edit-category-btn', function() {
-        const $category = $(this).closest('.category-item');
-        const key = $category.data('key');
-        const title = $category.find('.category-title').text();
-        const icon = $category.find('.category-icon').text();
-        const description = $category.find('.category-description').text();
+	$(document).on('click', '#update-category-btn', function() {
+		const key = $('#edit-category-key').val();
+		const data = {
+			label: $('#edit-category-label').val(),
+			icon: $('#edit-category-icon').val(),
+			description: $('#edit-category-description').val()
+		};
 
-        $('#category-modal-title').text('<?php esc_html_e( 'Edit Category', 'altitude-accountability-audit' ); ?>');
-        $('#category-key').val(key);
-        $('#category-label').val(title);
-        $('#category-icon').val(icon);
-        $('#category-description').val(description);
-        $('#category-modal').fadeIn();
-    });
+		if (!data.label) {
+			alert('<?php esc_html_e( 'Please enter a category name', 'altitude-accountability-audit' ); ?>');
+			return;
+		}
 
-    // === SAVE CATEGORY ===
+		$.post(ajaxurl, {
+			action: 'altitude_audit_update_category',
+			nonce: altitudeAuditAdmin.nonce,
+			key: key,
+			data: JSON.stringify(data)
+		}, function(response) {
+			if (response.success) {
+				config.categories[key] = $.extend(config.categories[key], data);
+				refreshPreview();
+				selectCategory(key, config.categories[key]);
+				markDirty();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-    $('#save-category-btn').on('click', function() {
-        const key = $('#category-key').val();
-        const data = {
-            label: $('#category-label').val(),
-            icon: $('#category-icon').val(),
-            description: $('#category-description').val()
-        };
+	// === DELETE CATEGORY ===
 
-        if (!data.label) {
-            alert('<?php esc_html_e( 'Please enter a category name', 'altitude-accountability-audit' ); ?>');
-            return;
-        }
+	$(document).on('click', '#delete-category-btn', function() {
+		if (!confirm('<?php esc_html_e( 'Are you sure you want to delete this category and all its questions?', 'altitude-accountability-audit' ); ?>')) {
+			return;
+		}
 
-        if (key) {
-            // Update existing
-            $.post(ajaxurl, {
-                action: 'altitude_audit_update_category',
-                nonce: altitudeAuditAdmin.nonce,
-                key: key,
-                data: JSON.stringify(data)
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.data.message);
-                }
-            });
-        } else {
-            // Add new
-            $.post(ajaxurl, {
-                action: 'altitude_audit_add_category',
-                nonce: altitudeAuditAdmin.nonce,
-                label: data.label,
-                icon: data.icon
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.data.message);
-                }
-            });
-        }
-    });
+		const key = $('#edit-category-key').val();
 
-    // === DELETE CATEGORY ===
+		$.post(ajaxurl, {
+			action: 'altitude_audit_delete_category',
+			nonce: altitudeAuditAdmin.nonce,
+			key: key
+		}, function(response) {
+			if (response.success) {
+				delete config.categories[key];
+				refreshPreview();
+				$('#settings-panel').html('<div class="no-selection-message"><span class="dashicons dashicons-admin-settings"></span><p><?php esc_html_e( 'Category deleted', 'altitude-accountability-audit' ); ?></p></div>');
+				markDirty();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-    $(document).on('click', '.delete-category-btn', function() {
-        if (!confirm('<?php esc_html_e( 'Are you sure you want to delete this category and all its questions?', 'altitude-accountability-audit' ); ?>')) {
-            return;
-        }
+	// === ADD QUESTION TO CATEGORY ===
 
-        const key = $(this).closest('.category-item').data('key');
+	$(document).on('click', '#add-question-to-category-btn', function() {
+		const categoryKey = $('#edit-category-key').val();
+		$('#new-question-category').val(categoryKey);
+		$('#add-question-modal').fadeIn();
+	});
 
-        $.post(ajaxurl, {
-            action: 'altitude_audit_delete_category',
-            nonce: altitudeAuditAdmin.nonce,
-            key: key
-        }, function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert(response.data.message);
-            }
-        });
-    });
+	// === UPDATE QUESTION ===
 
-    // === ADD QUESTION ===
+	$(document).on('click', '#update-question-btn', function() {
+		const category = $('#edit-question-category').val();
+		const index = parseInt($('#edit-question-index').val());
+		const data = {
+			label: $('#edit-question-label').val(),
+			help_text: $('#edit-question-help').val()
+		};
 
-    $(document).on('click', '.add-question-btn', function() {
-        const $category = $(this).closest('.category-item');
-        const categoryKey = $category.data('key');
+		if (!data.label) {
+			alert('<?php esc_html_e( 'Please enter a question', 'altitude-accountability-audit' ); ?>');
+			return;
+		}
 
-        $('#question-modal-title').text('<?php esc_html_e( 'Add New Question', 'altitude-accountability-audit' ); ?>');
-        $('#question-form')[0].reset();
-        $('#question-category').val(categoryKey);
-        $('#question-index').val(''); // Empty = new
-        $('#question-modal').fadeIn();
-    });
+		$.post(ajaxurl, {
+			action: 'altitude_audit_update_question',
+			nonce: altitudeAuditAdmin.nonce,
+			category: category,
+			index: index,
+			data: JSON.stringify(data)
+		}, function(response) {
+			if (response.success) {
+				config.categories[category].questions[index] = $.extend(config.categories[category].questions[index], data);
+				refreshPreview();
+				selectQuestion(category, index, config.categories[category].questions[index]);
+				markDirty();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-    // === EDIT QUESTION ===
+	// === DELETE QUESTION ===
 
-    $(document).on('click', '.edit-question-btn', function() {
-        const $question = $(this).closest('.question-item');
-        const $category = $question.closest('.category-item');
-        const categoryKey = $category.data('key');
-        const index = $question.data('index');
-        const label = $question.find('.question-label').text();
-        const help = $question.find('.question-help').text();
+	$(document).on('click', '#delete-question-btn', function() {
+		if (!confirm('<?php esc_html_e( 'Are you sure you want to delete this question?', 'altitude-accountability-audit' ); ?>')) {
+			return;
+		}
 
-        $('#question-modal-title').text('<?php esc_html_e( 'Edit Question', 'altitude-accountability-audit' ); ?>');
-        $('#question-category').val(categoryKey);
-        $('#question-index').val(index);
-        $('#question-label').val(label);
-        $('#question-help').val(help);
-        $('#question-modal').fadeIn();
-    });
+		const category = $('#edit-question-category').val();
+		const index = parseInt($('#edit-question-index').val());
 
-    // === SAVE QUESTION ===
+		$.post(ajaxurl, {
+			action: 'altitude_audit_delete_question',
+			nonce: altitudeAuditAdmin.nonce,
+			category: category,
+			index: index
+		}, function(response) {
+			if (response.success) {
+				config.categories[category].questions.splice(index, 1);
+				refreshPreview();
+				selectCategory(category, config.categories[category]);
+				markDirty();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-    $('#save-question-btn').on('click', function() {
-        const category = $('#question-category').val();
-        const index = $('#question-index').val();
-        const data = {
-            label: $('#question-label').val(),
-            help_text: $('#question-help').val()
-        };
+	// === CREATE CATEGORY ===
 
-        if (!data.label) {
-            alert('<?php esc_html_e( 'Please enter a question', 'altitude-accountability-audit' ); ?>');
-            return;
-        }
+	$(document).on('click', '.element-item[data-element-type="category"]', function() {
+		$('#add-category-modal').fadeIn();
+	});
 
-        if (index !== '') {
-            // Update existing
-            $.post(ajaxurl, {
-                action: 'altitude_audit_update_question',
-                nonce: altitudeAuditAdmin.nonce,
-                category: category,
-                index: index,
-                data: JSON.stringify(data)
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.data.message);
-                }
-            });
-        } else {
-            // Add new
-            $.post(ajaxurl, {
-                action: 'altitude_audit_add_question',
-                nonce: altitudeAuditAdmin.nonce,
-                category: category,
-                label: data.label
-            }, function(response) {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert(response.data.message);
-                }
-            });
-        }
-    });
+	$('#create-category-btn').on('click', function() {
+		const label = $('#new-category-label').val();
+		const icon = $('#new-category-icon').val();
 
-    // === DELETE QUESTION ===
+		if (!label) {
+			alert('<?php esc_html_e( 'Please enter a category name', 'altitude-accountability-audit' ); ?>');
+			return;
+		}
 
-    $(document).on('click', '.delete-question-btn', function() {
-        if (!confirm('<?php esc_html_e( 'Are you sure you want to delete this question?', 'altitude-accountability-audit' ); ?>')) {
-            return;
-        }
+		$.post(ajaxurl, {
+			action: 'altitude_audit_add_category',
+			nonce: altitudeAuditAdmin.nonce,
+			label: label,
+			icon: icon
+		}, function(response) {
+			if (response.success) {
+				location.reload();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-        const $question = $(this).closest('.question-item');
-        const $category = $question.closest('.category-item');
-        const categoryKey = $category.data('key');
-        const index = $question.data('index');
+	// === CREATE QUESTION ===
 
-        $.post(ajaxurl, {
-            action: 'altitude_audit_delete_question',
-            nonce: altitudeAuditAdmin.nonce,
-            category: categoryKey,
-            index: index
-        }, function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert(response.data.message);
-            }
-        });
-    });
+	$('#create-question-btn').on('click', function() {
+		const category = $('#new-question-category').val();
+		const label = $('#new-question-label').val();
 
-    // === SAVE BUILDER (Reorder) ===
+		if (!label) {
+			alert('<?php esc_html_e( 'Please enter a question', 'altitude-accountability-audit' ); ?>');
+			return;
+		}
 
-    $('#save-builder-btn').on('click', function() {
-        const categories = {};
+		$.post(ajaxurl, {
+			action: 'altitude_audit_add_question',
+			nonce: altitudeAuditAdmin.nonce,
+			category: category,
+			label: label
+		}, function(response) {
+			if (response.success) {
+				location.reload();
+			} else {
+				alert(response.data.message);
+			}
+		});
+	});
 
-        $('#categories-list .category-item').each(function() {
-            const key = $(this).data('key');
-            const $category = $(this);
+	// === REFRESH PREVIEW ===
 
-            const questions = [];
-            $category.find('.question-item').each(function(index) {
-                const $q = $(this);
-                questions.push({
-                    label: $q.find('.question-label').text(),
-                    name: key + '_q' + (index + 1),
-                    help_text: $q.find('.question-help').text()
-                });
-            });
+	function refreshPreview() {
+		// Re-render form preview with updated config
+		$.post(ajaxurl, {
+			action: 'altitude_audit_render_preview',
+			nonce: altitudeAuditAdmin.nonce
+		}, function(response) {
+			if (response.success) {
+				$('.form-preview-inner').html(response.data.html);
+				addCategoryKeys();
+			}
+		});
+	}
 
-            categories[key] = {
-                label: $category.find('.category-title').text(),
-                description: $category.find('.category-description').text(),
-                icon: $category.find('.category-icon').text(),
-                questions: questions
-            };
-        });
+	$('#refresh-preview-btn').on('click', function() {
+		location.reload();
+	});
 
-        $.post(ajaxurl, {
-            action: 'altitude_audit_save_builder',
-            nonce: altitudeAuditAdmin.nonce,
-            categories: JSON.stringify(categories)
-        }, function(response) {
-            if (response.success) {
-                isDirty = false;
-                $('#save-builder-btn').removeClass('button-primary').addClass('button-secondary');
-                alert(response.data.message);
-            } else {
-                alert(response.data.message);
-            }
-        });
-    });
+	// Add data attributes to categories and questions for selection
+	function addCategoryKeys() {
+		$('.form-preview-inner .altitude-category-section').each(function(index) {
+			const keys = Object.keys(config.categories);
+			if (keys[index]) {
+				$(this).attr('data-category-key', keys[index]);
+			}
+		});
 
-    // === MODAL CONTROLS ===
+		$('.form-preview-inner .altitude-category-section').each(function() {
+			const categoryKey = $(this).data('category-key');
+			if (categoryKey) {
+				$(this).find('.altitude-question-wrapper').each(function(qIndex) {
+					$(this).attr('data-question-index', qIndex);
+				});
+			}
+		});
+	}
 
-    $('.altitude-modal-close, .altitude-modal-overlay').on('click', function() {
-        $(this).closest('.altitude-modal').fadeOut();
-    });
+	// Initialize on load
+	addCategoryKeys();
 
-    // === WARN ON EXIT ===
+	// === SELECT QUESTION FROM SIDEBAR ===
 
-    $(window).on('beforeunload', function() {
-        if (isDirty) {
-            return '<?php esc_html_e( 'You have unsaved changes. Are you sure you want to leave?', 'altitude-accountability-audit' ); ?>';
-        }
-    });
+	$(document).on('click', '.question-sidebar-item', function() {
+		const categoryKey = $(this).data('category');
+		const index = $(this).data('index');
+		const question = config.categories[categoryKey].questions[index];
+		selectQuestion(categoryKey, index, question);
+	});
 
-    // === PREVIEW FORM ===
+	// === MODAL CONTROLS ===
 
-    $('#preview-form-btn').on('click', function() {
-        window.open('<?php echo esc_url( home_url( '/?preview_altitude_audit=1' ) ); ?>', '_blank');
-    });
+	$('.altitude-modal-close, .altitude-modal-overlay').on('click', function() {
+		$(this).closest('.altitude-modal').fadeOut();
+	});
+
+	// === SAVE/PUBLISH ===
+
+	function markDirty() {
+		isDirty = true;
+		$('#save-builder-btn, #publish-builder-btn').addClass('button-primary');
+	}
+
+	$('#save-builder-btn, #publish-builder-btn').on('click', function() {
+		location.reload();
+	});
+
+	// === WARN ON EXIT ===
+
+	$(window).on('beforeunload', function() {
+		if (isDirty) {
+			return '<?php esc_html_e( 'You have unsaved changes. Are you sure you want to leave?', 'altitude-accountability-audit' ); ?>';
+		}
+	});
 });
 </script>
