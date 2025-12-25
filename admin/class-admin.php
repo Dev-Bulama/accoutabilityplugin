@@ -118,6 +118,16 @@ class Altitude_Audit_Admin {
             array( $this, 'display_dashboard_page' )
         );
 
+        // Form Builder submenu
+        add_submenu_page(
+            'altitude-audit',
+            __( 'Form Builder', 'altitude-accountability-audit' ),
+            __( 'Form Builder', 'altitude-accountability-audit' ),
+            'manage_options',
+            'altitude-audit-builder',
+            array( $this, 'display_builder_page' )
+        );
+
         // Settings submenu
         add_submenu_page(
             'altitude-audit',
@@ -178,6 +188,13 @@ class Altitude_Audit_Admin {
     }
 
     /**
+     * Display form builder page.
+     */
+    public function display_builder_page() {
+        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'admin/views/builder.php';
+    }
+
+    /**
      * Register settings.
      */
     public function register_settings() {
@@ -205,6 +222,15 @@ class Altitude_Audit_Admin {
         add_action( 'wp_ajax_altitude_audit_preview_email', array( $this, 'ajax_preview_email' ) );
         add_action( 'wp_ajax_altitude_audit_export_config', array( $this, 'ajax_export_config' ) );
         add_action( 'wp_ajax_altitude_audit_import_config', array( $this, 'ajax_import_config' ) );
+
+        // Form Builder AJAX requests
+        add_action( 'wp_ajax_altitude_audit_save_builder', array( $this, 'ajax_save_builder' ) );
+        add_action( 'wp_ajax_altitude_audit_add_category', array( $this, 'ajax_add_category' ) );
+        add_action( 'wp_ajax_altitude_audit_update_category', array( $this, 'ajax_update_category' ) );
+        add_action( 'wp_ajax_altitude_audit_delete_category', array( $this, 'ajax_delete_category' ) );
+        add_action( 'wp_ajax_altitude_audit_add_question', array( $this, 'ajax_add_question' ) );
+        add_action( 'wp_ajax_altitude_audit_update_question', array( $this, 'ajax_update_question' ) );
+        add_action( 'wp_ajax_altitude_audit_delete_question', array( $this, 'ajax_delete_question' ) );
     }
 
     /**
@@ -366,5 +392,237 @@ class Altitude_Audit_Admin {
 
         // Form will automatically use new config on next render
         wp_send_json_success( array( 'message' => __( 'Configuration imported successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Save entire form builder configuration.
+     */
+    public function ajax_save_builder() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $categories = isset( $_POST['categories'] ) ? json_decode( stripslashes( $_POST['categories'] ), true ) : null;
+
+        if ( ! $categories ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid categories data', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+        $config['categories'] = $categories;
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Form builder saved successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Add new category.
+     */
+    public function ajax_add_category() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['key'] ?? 'new_category_' . time() );
+        $label = sanitize_text_field( $_POST['label'] ?? 'New Category' );
+        $icon = sanitize_text_field( $_POST['icon'] ?? '📝' );
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        $config['categories'][ $category_key ] = array(
+            'label' => $label,
+            'description' => '',
+            'icon' => $icon,
+            'questions' => array(),
+        );
+
+        // Add result page entry
+        $config['result_pages'][ $category_key ] = array(
+            'label' => 'The ' . $label,
+            'url' => '',
+            'description' => '',
+        );
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array(
+            'message' => __( 'Category added successfully!', 'altitude-accountability-audit' ),
+            'category' => $config['categories'][ $category_key ],
+            'category_key' => $category_key,
+        ) );
+    }
+
+    /**
+     * AJAX: Update category.
+     */
+    public function ajax_update_category() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['key'] ?? '' );
+        $data = json_decode( stripslashes( $_POST['data'] ?? '{}' ), true );
+
+        if ( ! $category_key || ! $data ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid category data', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Category not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config['categories'][ $category_key ]['label'] = sanitize_text_field( $data['label'] ?? '' );
+        $config['categories'][ $category_key ]['description'] = sanitize_textarea_field( $data['description'] ?? '' );
+        $config['categories'][ $category_key ]['icon'] = sanitize_text_field( $data['icon'] ?? '📝' );
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Category updated successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Delete category.
+     */
+    public function ajax_delete_category() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['key'] ?? '' );
+
+        if ( ! $category_key ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid category key', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Category not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        unset( $config['categories'][ $category_key ] );
+        unset( $config['result_pages'][ $category_key ] );
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Category deleted successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Add question.
+     */
+    public function ajax_add_question() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['category'] ?? '' );
+        $label = sanitize_textarea_field( $_POST['label'] ?? 'New question?' );
+
+        if ( ! $category_key ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid category key', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Category not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        $question_count = count( $config['categories'][ $category_key ]['questions'] ) + 1;
+
+        $new_question = array(
+            'label' => $label,
+            'name' => $category_key . '_q' . $question_count,
+            'help_text' => '',
+        );
+
+        $config['categories'][ $category_key ]['questions'][] = $new_question;
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array(
+            'message' => __( 'Question added successfully!', 'altitude-accountability-audit' ),
+            'question' => $new_question,
+        ) );
+    }
+
+    /**
+     * AJAX: Update question.
+     */
+    public function ajax_update_question() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['category'] ?? '' );
+        $question_index = absint( $_POST['index'] ?? -1 );
+        $data = json_decode( stripslashes( $_POST['data'] ?? '{}' ), true );
+
+        if ( ! $category_key || $question_index < 0 || ! $data ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid question data', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ]['questions'][ $question_index ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Question not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config['categories'][ $category_key ]['questions'][ $question_index ]['label'] = sanitize_textarea_field( $data['label'] ?? '' );
+        $config['categories'][ $category_key ]['questions'][ $question_index ]['help_text'] = sanitize_text_field( $data['help_text'] ?? '' );
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Question updated successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Delete question.
+     */
+    public function ajax_delete_question() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['category'] ?? '' );
+        $question_index = absint( $_POST['index'] ?? -1 );
+
+        if ( ! $category_key || $question_index < 0 ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid question index', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ]['questions'][ $question_index ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Question not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        array_splice( $config['categories'][ $category_key ]['questions'], $question_index, 1 );
+
+        // Regenerate field names
+        foreach ( $config['categories'][ $category_key ]['questions'] as $index => $question ) {
+            $config['categories'][ $category_key ]['questions'][ $index ]['name'] = $category_key . '_q' . ( $index + 1 );
+        }
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Question deleted successfully!', 'altitude-accountability-audit' ) ) );
     }
 }

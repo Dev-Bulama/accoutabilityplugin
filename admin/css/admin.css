@@ -371,3 +371,248 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =======================
+   FORM BUILDER
+   ======================= */
+
+.altitude-form-builder .builder-container {
+    margin-top: 20px;
+}
+
+.builder-toolbar {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.categories-list {
+    display: grid;
+    gap: 20px;
+}
+
+.category-item {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.category-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.category-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: move;
+}
+
+.drag-handle {
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.category-icon {
+    font-size: 24px;
+}
+
+.category-title {
+    flex: 1;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.category-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.category-actions .button {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 10px;
+    height: auto;
+    line-height: 1;
+}
+
+.category-actions .button:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.category-description {
+    padding: 15px 20px;
+    background: #f7f9fc;
+    font-size: 14px;
+    color: #666;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.questions-list {
+    padding: 15px;
+    min-height: 50px;
+}
+
+.question-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #f7f9fc;
+    border: 2px solid #e5e5e5;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.question-item:hover {
+    border-color: #667eea;
+    background: #f0f3ff;
+}
+
+.question-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.question-content {
+    flex: 1;
+}
+
+.question-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.question-help {
+    font-size: 13px;
+    color: #666;
+}
+
+.question-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.no-questions,
+.no-categories {
+    text-align: center;
+    padding: 40px;
+    background: #f7f9fc;
+    border-radius: 8px;
+    color: #666;
+}
+
+/* =======================
+   MODALS
+   ======================= */
+
+.altitude-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100000;
+}
+
+.altitude-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+}
+
+.altitude-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+    margin: 50px auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.altitude-modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.altitude-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.altitude-modal-close {
+    background: none;
+    border: none;
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+}
+
+.altitude-modal-close:hover {
+    color: #000;
+}
+
+.altitude-modal-body {
+    padding: 25px;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+}
+
+.altitude-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .category-header {
+        flex-wrap: wrap;
+    }
+
+    .category-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .question-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .question-actions {
+        align-self: flex-end;
+    }
+}
