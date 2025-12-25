@@ -79,23 +79,8 @@ class Altitude_Audit_Form_Handler {
         $email_handler = new Altitude_Audit_Email_Handler();
         $email_handler->send_result_email( $result_data, $config );
 
-        // Redirect to result page or show success message
-        $redirect_url = self::get_redirect_url( $accountability_type, $result_data );
-
-        if ( $redirect_url ) {
-            wp_redirect( $redirect_url );
-            exit;
-        } else {
-            // Show success message
-            wp_die(
-                '<h1>' . esc_html__( 'Thank You!', 'altitude-accountability-audit' ) . '</h1>' .
-                '<p>' . esc_html( $config['form_settings']['success_message'] ) . '</p>' .
-                '<p><strong>' . esc_html__( 'Your Accountability Type:', 'altitude-accountability-audit' ) . '</strong> ' . esc_html( self::get_type_label( $accountability_type, $config ) ) . '</p>' .
-                '<p><a href="' . esc_url( home_url() ) . '" class="button">' . esc_html__( 'Return Home', 'altitude-accountability-audit' ) . '</a></p>',
-                esc_html__( 'Submission Successful', 'altitude-accountability-audit' ),
-                array( 'response' => 200 )
-            );
-        }
+        // Show custom thank you message with results
+        self::display_thank_you_page( $result_data, $scores, $accountability_type, $config );
     }
 
     /**
@@ -276,6 +261,158 @@ class Altitude_Audit_Form_Handler {
         }
 
         return ucfirst( $type );
+    }
+
+    /**
+     * Display thank you page with custom HTML and merge tags.
+     *
+     * @param array  $result_data Result data.
+     * @param array  $scores Scores array.
+     * @param string $accountability_type Accountability type.
+     * @param array  $config Configuration.
+     */
+    private static function display_thank_you_page( $result_data, $scores, $accountability_type, $config ) {
+        // Get thank you message template
+        $thank_you_message = isset( $config['form_settings']['thank_you_message'] )
+            ? $config['form_settings']['thank_you_message']
+            : '<h1>Thank You!</h1><p>Your results have been submitted successfully.</p>';
+
+        // Get accountability type details
+        $accountability_label = isset( $config['categories'][ $accountability_type ]['label'] )
+            ? $config['categories'][ $accountability_type ]['label']
+            : self::get_type_label( $accountability_type, $config );
+
+        $accountability_description = isset( $config['categories'][ $accountability_type ]['description'] )
+            ? $config['categories'][ $accountability_type ]['description']
+            : '';
+
+        // Get highest score (the accountability type score)
+        $highest_score = $scores[ $accountability_type ];
+
+        // Prepare merge tags
+        $merge_tags = array(
+            '{first_name}' => esc_html( $result_data['first_name'] ),
+            '{email}' => esc_html( $result_data['email'] ),
+            '{total_score}' => esc_html( $result_data['total_score'] ),
+            '{distraction_score}' => isset( $scores['distraction'] ) ? esc_html( $scores['distraction'] ) : '0',
+            '{comfort_score}' => isset( $scores['comfort'] ) ? esc_html( $scores['comfort'] ) : '0',
+            '{ego_score}' => isset( $scores['ego'] ) ? esc_html( $scores['ego'] ) : '0',
+            '{emotion_score}' => isset( $scores['emotion'] ) ? esc_html( $scores['emotion'] ) : '0',
+            '{boundaries_score}' => isset( $scores['boundaries'] ) ? esc_html( $scores['boundaries'] ) : '0',
+            '{spiritual_score}' => isset( $scores['spiritual'] ) ? esc_html( $scores['spiritual'] ) : '0',
+            '{accountability_type}' => esc_html( $accountability_type ),
+            '{accountability_type_label}' => esc_html( $accountability_label ),
+            '{accountability_type_description}' => esc_html( $accountability_description ),
+            '{highest_score}' => esc_html( $highest_score ),
+        );
+
+        // Replace all merge tags
+        $processed_message = str_replace(
+            array_keys( $merge_tags ),
+            array_values( $merge_tags ),
+            $thank_you_message
+        );
+
+        // Build complete HTML page with nice styling
+        $html = '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>' . esc_html__( 'Thank You - Submission Successful', 'altitude-accountability-audit' ) . '</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f7fa;
+        }
+        .thank-you-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        h2 {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h3 {
+            color: #555;
+        }
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .score-item {
+            background: #f7f9fc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .score-item strong {
+            color: #667eea;
+            font-size: 24px;
+        }
+        .button-group {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #764ba2;
+        }
+        .button-secondary {
+            background: #6c757d;
+        }
+        .button-secondary:hover {
+            background: #5a6268;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 10px;
+            }
+            .thank-you-container {
+                padding: 20px;
+            }
+            .scores-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="thank-you-container">
+        ' . $processed_message . '
+        <div class="button-group">
+            <a href="' . esc_url( home_url() ) . '" class="button">' . esc_html__( 'Return Home', 'altitude-accountability-audit' ) . '</a>
+        </div>
+    </div>
+</body>
+</html>';
+
+        // Output and exit
+        echo $html;
+        exit;
     }
 }
 

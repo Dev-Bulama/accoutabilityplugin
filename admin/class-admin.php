@@ -287,7 +287,8 @@ class Altitude_Audit_Admin {
             $sanitized['form_settings'] = array(
                 'form_title' => sanitize_text_field( $input['form_settings']['form_title'] ),
                 'submit_button_text' => sanitize_text_field( $input['form_settings']['submit_button_text'] ),
-                'success_message' => sanitize_textarea_field( $input['form_settings']['success_message'] ),
+                'success_message' => isset( $input['form_settings']['success_message'] ) ? sanitize_textarea_field( $input['form_settings']['success_message'] ) : '',
+                'thank_you_message' => isset( $input['form_settings']['thank_you_message'] ) ? wp_kses_post( $input['form_settings']['thank_you_message'] ) : '',
             );
         }
 

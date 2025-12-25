@@ -50,10 +50,54 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
                     </tr>
                     <tr>
                         <th scope="row">
-                            <label for="success_message"><?php esc_html_e( 'Success Message', 'altitude-accountability-audit' ); ?></label>
+                            <label for="thank_you_message"><?php esc_html_e( 'Thank You Message (HTML)', 'altitude-accountability-audit' ); ?></label>
+                            <p class="description"><?php esc_html_e( 'Shown immediately after form submission', 'altitude-accountability-audit' ); ?></p>
                         </th>
                         <td>
-                            <textarea id="success_message" name="altitude_audit_config[form_settings][success_message]" rows="3" class="large-text"><?php echo esc_textarea( $config['form_settings']['success_message'] ); ?></textarea>
+                            <?php
+                            $thank_you_message = isset( $config['form_settings']['thank_you_message'] )
+                                ? $config['form_settings']['thank_you_message']
+                                : '<h1>Thank You for Completing the Accountability Audit!</h1>
+<p>Your results have been calculated and emailed to you.</p>
+<h2>Your Highest Challenge Area: {accountability_type_label}</h2>
+<p><strong>Score:</strong> {highest_score} out of 9 points</p>
+<p>{accountability_type_description}</p>
+<h3>Your Scores:</h3>
+<ul>
+    <li>Distraction: {distraction_score}/9</li>
+    <li>Comfort: {comfort_score}/9</li>
+    <li>Ego: {ego_score}/9</li>
+    <li>Emotion: {emotion_score}/9</li>
+    <li>Boundaries: {boundaries_score}/9</li>
+    <li>Spiritual: {spiritual_score}/9</li>
+</ul>
+<p><strong>Total Score:</strong> {total_score}/54</p>
+<p>Check your email for detailed results and next steps.</p>';
+
+                            wp_editor(
+                                $thank_you_message,
+                                'thank_you_message',
+                                array(
+                                    'textarea_name' => 'altitude_audit_config[form_settings][thank_you_message]',
+                                    'textarea_rows' => 15,
+                                    'media_buttons' => false,
+                                    'teeny' => false,
+                                    'tinymce' => array(
+                                        'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,link,unlink,forecolor,backcolor,removeformat',
+                                        'toolbar2' => '',
+                                    ),
+                                )
+                            );
+                            ?>
+                            <p class="description">
+                                <strong><?php esc_html_e( 'Available Merge Tags:', 'altitude-accountability-audit' ); ?></strong><br>
+                                <code>{first_name}</code>, <code>{email}</code>, <code>{total_score}</code><br>
+                                <code>{distraction_score}</code>, <code>{comfort_score}</code>, <code>{ego_score}</code>, <code>{emotion_score}</code>, <code>{boundaries_score}</code>, <code>{spiritual_score}</code><br>
+                                <code>{accountability_type}</code> - <?php esc_html_e( 'Category key (e.g., "distraction")', 'altitude-accountability-audit' ); ?><br>
+                                <code>{accountability_type_label}</code> - <?php esc_html_e( 'Category name (e.g., "Distraction")', 'altitude-accountability-audit' ); ?><br>
+                                <code>{accountability_type_description}</code> - <?php esc_html_e( 'Category description', 'altitude-accountability-audit' ); ?><br>
+                                <code>{highest_score}</code> - <?php esc_html_e( 'Score of the highest category', 'altitude-accountability-audit' ); ?>
+                            </p>
                         </td>
                     </tr>
                 </table>

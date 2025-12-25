@@ -67,6 +67,11 @@ class Altitude_Audit_Public {
         // Get configuration for JS
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
+        // Ensure categories is an array (prevent fatal error if config is corrupted)
+        if ( ! isset( $config['categories'] ) || ! is_array( $config['categories'] ) ) {
+            $config = altitude_audit_get_default_config();
+        }
+
         // Prepare config for JavaScript
         $js_config = array(
             'categories' => array_keys( $config['categories'] ),

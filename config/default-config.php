@@ -20,6 +20,22 @@ function altitude_audit_get_default_config() {
             'form_title' => __( 'Personal Accountability Audit', 'altitude-accountability-audit' ),
             'submit_button_text' => __( 'Get My Results', 'altitude-accountability-audit' ),
             'success_message' => __( 'Thank you! Check your email for your personalized results.', 'altitude-accountability-audit' ),
+            'thank_you_message' => '<h1>Thank You for Completing the Accountability Audit!</h1>
+<p>Your results have been calculated and emailed to <strong>{email}</strong>.</p>
+<h2>Your Highest Challenge Area: {accountability_type_label}</h2>
+<p><strong>Score:</strong> {highest_score} out of 9 points</p>
+<p>{accountability_type_description}</p>
+<h3>Your Complete Scores:</h3>
+<ul>
+    <li><strong>Distraction:</strong> {distraction_score}/9</li>
+    <li><strong>Comfort:</strong> {comfort_score}/9</li>
+    <li><strong>Ego:</strong> {ego_score}/9</li>
+    <li><strong>Emotion:</strong> {emotion_score}/9</li>
+    <li><strong>Boundaries:</strong> {boundaries_score}/9</li>
+    <li><strong>Spiritual:</strong> {spiritual_score}/9</li>
+</ul>
+<p><strong>Total Score:</strong> {total_score}/54</p>
+<p>Check your email for detailed results and personalized recommendations for your journey forward.</p>',
         ),
         'email_settings' => array(
             'from_name' => get_bloginfo( 'name' ),
