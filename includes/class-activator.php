@@ -18,16 +18,6 @@ class Altitude_Audit_Activator {
      * Activate the plugin.
      */
     public static function activate() {
-        // Check if Fluent Forms is active
-        if ( ! defined( 'FLUENTFORM' ) ) {
-            deactivate_plugins( plugin_basename( __FILE__ ) );
-            wp_die(
-                esc_html__( 'This plugin requires Fluent Forms to be installed and activated.', 'altitude-accountability-audit' ),
-                esc_html__( 'Plugin Activation Error', 'altitude-accountability-audit' ),
-                array( 'back_link' => true )
-            );
-        }
-
         // Create database tables
         require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'includes/class-database.php';
         Altitude_Audit_Database::create_tables();

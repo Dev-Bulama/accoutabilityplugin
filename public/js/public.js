@@ -1,5 +1,5 @@
 /**
- * Public JavaScript
+ * Public JavaScript - Standalone Form
  *
  * @package Altitude_Audit
  */
@@ -8,7 +8,210 @@
     'use strict';
 
     $(document).ready(function() {
-        // Animate score bars on scroll
+        var $form = $('#altitude-audit-form');
+
+        if ($form.length === 0) {
+            // Form not on this page
+            return;
+        }
+
+        // Total number of questions
+        var totalQuestions = $('input[type="radio"]').length / 4; // 4 options per question
+
+        // Track answered questions
+        function updateProgress() {
+            var answeredQuestions = 0;
+
+            // Count how many questions have been answered
+            $('input[type="radio"]').each(function() {
+                var name = $(this).attr('name');
+                if ($('input[name="' + name + '"]:checked').length > 0) {
+                    answeredQuestions++;
+                    // Remove duplicates (we're counting per name)
+                }
+            });
+
+            // Get unique question names
+            var uniqueQuestions = {};
+            $('input[type="radio"]').each(function() {
+                uniqueQuestions[$(this).attr('name')] = true;
+            });
+
+            var answeredCount = 0;
+            for (var name in uniqueQuestions) {
+                if ($('input[name="' + name + '"]:checked').length > 0) {
+                    answeredCount++;
+                }
+            }
+
+            // Update progress display
+            $('#answered-count').text(answeredCount);
+
+            var percentage = (answeredCount / totalQuestions) * 100;
+            $('.altitude-progress-fill').css('width', percentage + '%');
+
+            return answeredCount;
+        }
+
+        // Calculate scores in real-time
+        function calculateScores() {
+            var categoryScores = {
+                'distraction': 0,
+                'comfort': 0,
+                'ego': 0,
+                'emotion': 0,
+                'boundaries': 0,
+                'spiritual': 0
+            };
+
+            var totalScore = 0;
+
+            // Calculate each category score
+            for (var category in categoryScores) {
+                var score = 0;
+
+                $('input[data-category="' + category + '"]:checked').each(function() {
+                    score += parseInt($(this).val()) || 0;
+                });
+
+                categoryScores[category] = score;
+                totalScore += score;
+
+                // Update hidden field
+                $('#' + category + '_score').val(score);
+            }
+
+            // Update total score
+            $('#total_score').val(totalScore);
+
+            // Determine highest category
+            var highestCategory = '';
+            var highestScore = -1;
+
+            for (var cat in categoryScores) {
+                if (categoryScores[cat] > highestScore) {
+                    highestScore = categoryScores[cat];
+                    highestCategory = cat;
+                }
+            }
+
+            // Update accountability type
+            $('#accountability_type').val(highestCategory);
+        }
+
+        // Listen for radio button changes
+        $('input[type="radio"]').on('change', function() {
+            updateProgress();
+            calculateScores();
+
+            // Visual feedback for answered question
+            $(this).closest('.altitude-question-wrapper').addClass('answered');
+        });
+
+        // Auto-fill button (testing mode)
+        $('#altitude-autofill-btn').on('click', function(e) {
+            e.preventDefault();
+
+            // Fill in name and email
+            $('#first_name').val('John Tester');
+            $('#email').val('test@example.com');
+
+            // Randomly select answers for each question
+            $('input[type="radio"]').each(function() {
+                var name = $(this).attr('name');
+
+                // Skip if already filled (to avoid filling same question multiple times)
+                if ($('input[name="' + name + '"]:checked').length > 0) {
+                    return;
+                }
+
+                // Select a random option (0-3)
+                var randomValue = Math.floor(Math.random() * 4);
+                $('input[name="' + name + '"][value="' + randomValue + '"]').prop('checked', true).trigger('change');
+            });
+
+            // Scroll to submit button
+            $('html, body').animate({
+                scrollTop: $('.altitude-form-submit').offset().top - 100
+            }, 500);
+
+            alert('✓ Form auto-filled with random test data!');
+        });
+
+        // Form validation before submit
+        $form.on('submit', function(e) {
+            var isValid = true;
+            var errors = [];
+
+            // Check name
+            if ($('#first_name').val().trim() === '') {
+                errors.push('Please enter your first name');
+                isValid = false;
+            }
+
+            // Check email
+            if ($('#email').val().trim() === '') {
+                errors.push('Please enter your email address');
+                isValid = false;
+            }
+
+            // Check all questions are answered
+            var uniqueQuestions = {};
+            $('input[type="radio"]').each(function() {
+                uniqueQuestions[$(this).attr('name')] = true;
+            });
+
+            for (var name in uniqueQuestions) {
+                if ($('input[name="' + name + '"]:checked').length === 0) {
+                    errors.push('Please answer all questions');
+                    isValid = false;
+                    break;
+                }
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+
+                alert('Please complete the form:\n\n' + errors.join('\n'));
+
+                // Scroll to first unanswered question
+                var $firstUnanswered = $('.altitude-question-wrapper').not('.answered').first();
+                if ($firstUnanswered.length) {
+                    $('html, body').animate({
+                        scrollTop: $firstUnanswered.offset().top - 100
+                    }, 500);
+                }
+
+                return false;
+            }
+
+            // Show loading state
+            var $submitBtn = $form.find('button[type="submit"]');
+            $submitBtn.prop('disabled', true).text('Processing...');
+        });
+
+        // Keyboard navigation
+        $('input[type="radio"]').on('keydown', function(e) {
+            var $current = $(this);
+            var name = $current.attr('name');
+            var $allOptions = $('input[name="' + name + '"]');
+            var currentIndex = $allOptions.index($current);
+
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                var nextIndex = (currentIndex + 1) % $allOptions.length;
+                $allOptions.eq(nextIndex).focus();
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                var prevIndex = (currentIndex - 1 + $allOptions.length) % $allOptions.length;
+                $allOptions.eq(prevIndex).focus();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                $current.prop('checked', true).trigger('change');
+            }
+        });
+
+        // Animate score bars on results page
         function animateScoreBars() {
             $('.score-bar').each(function() {
                 var $bar = $(this);
@@ -31,132 +234,11 @@
             });
         }
 
-        // Run on page load
-        animateScoreBars();
-
-        // Run on scroll
-        $(window).on('scroll', animateScoreBars);
-
-        // Client-side scoring (optional enhancement)
-        // This calculates scores in real-time as user answers questions
-        if (typeof altitudeAuditConfig !== 'undefined') {
-            var categories = altitudeAuditConfig.categories;
-
-            // Listen for radio button changes
-            $('.altitude-audit-question input[type="radio"]').on('change', function() {
-                calculateScores();
-            });
-
-            function calculateScores() {
-                var categoryScores = {};
-                var totalScore = 0;
-
-                // Initialize category scores
-                categories.forEach(function(category) {
-                    categoryScores[category] = 0;
-                });
-
-                // Calculate scores for each category
-                categories.forEach(function(category) {
-                    var categoryScore = 0;
-
-                    $('input[name^="' + category + '_q"]:checked').each(function() {
-                        var value = parseInt($(this).val()) || 0;
-                        categoryScore += value;
-                    });
-
-                    categoryScores[category] = categoryScore;
-                    totalScore += categoryScore;
-
-                    // Update hidden field
-                    $('input[name="' + category + '_score"]').val(categoryScore);
-                });
-
-                // Update total score
-                $('input[name="total_score"]').val(totalScore);
-
-                // Determine accountability type (highest score)
-                var highestCategory = '';
-                var highestScore = -1;
-
-                categories.forEach(function(category) {
-                    if (categoryScores[category] > highestScore) {
-                        highestScore = categoryScores[category];
-                        highestCategory = category;
-                    }
-                });
-
-                // Update accountability type hidden field
-                $('input[name="accountability_type"]').val(highestCategory);
-
-                // Optional: Show progress indicator
-                updateProgressIndicator(categoryScores, totalScore);
-            }
-
-            function updateProgressIndicator(categoryScores, totalScore) {
-                // Check if progress indicator exists
-                if ($('.altitude-audit-progress').length === 0) {
-                    return;
-                }
-
-                // Update progress display
-                $('.altitude-audit-progress-total').text(totalScore + '/54');
-
-                // Update category progress bars
-                for (var category in categoryScores) {
-                    var score = categoryScores[category];
-                    var percentage = (score / 9) * 100;
-
-                    $('.altitude-audit-progress-' + category + ' .progress-bar')
-                        .css('width', percentage + '%')
-                        .text(score + '/9');
-                }
-            }
+        // Run animation if on results page
+        if ($('.altitude-audit-results').length > 0) {
+            animateScoreBars();
+            $(window).on('scroll', animateScoreBars);
         }
-
-        // Form validation enhancement
-        $('.altitude-audit-submit').closest('form').on('submit', function(e) {
-            var allQuestionsAnswered = true;
-
-            $('.altitude-audit-question').each(function() {
-                var $question = $(this);
-                var name = $question.attr('name');
-                var $checked = $('input[name="' + name + '"]:checked');
-
-                if ($checked.length === 0) {
-                    allQuestionsAnswered = false;
-                }
-            });
-
-            if (!allQuestionsAnswered) {
-                // Fluent Forms has its own validation, but we can add a custom message
-                // This is just a backup
-                console.log('Please answer all questions');
-            }
-        });
-
-        // Smooth scroll to first error
-        $(document).on('fluentform_validation_error', function(e, data) {
-            if (data.errors && data.errors.length > 0) {
-                var $firstError = $('.ff-el-is-error').first();
-                if ($firstError.length) {
-                    $('html, body').animate({
-                        scrollTop: $firstError.offset().top - 100
-                    }, 500);
-                }
-            }
-        });
-
-        // Add keyboard navigation for radio buttons
-        $('.altitude-audit-question input[type="radio"]').on('keydown', function(e) {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                $(this).parent().next().find('input[type="radio"]').focus().click();
-            } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-                e.preventDefault();
-                $(this).parent().prev().find('input[type="radio"]').focus().click();
-            }
-        });
 
         // Print results functionality
         $('.print-results-btn').on('click', function(e) {
@@ -164,38 +246,8 @@
             window.print();
         });
 
-        // Share results functionality (if social sharing is added in the future)
-        $('.share-results-btn').on('click', function(e) {
-            e.preventDefault();
-            var url = window.location.href;
-            var text = 'I just completed my Personal Accountability Audit!';
-
-            if (navigator.share) {
-                navigator.share({
-                    title: 'My Accountability Audit Results',
-                    text: text,
-                    url: url
-                });
-            } else {
-                // Fallback: copy to clipboard
-                copyToClipboard(url);
-                alert('Link copied to clipboard!');
-            }
-        });
-
-        function copyToClipboard(text) {
-            var $temp = $('<input>');
-            $('body').append($temp);
-            $temp.val(text).select();
-            document.execCommand('copy');
-            $temp.remove();
-        }
-
-        // Add aria-live region for dynamic updates
-        if ($('.altitude-audit-results').length > 0) {
-            $('<div role="status" aria-live="polite" class="sr-only"></div>')
-                .appendTo('body');
-        }
+        // Initialize progress
+        updateProgress();
     });
 
 })(jQuery);

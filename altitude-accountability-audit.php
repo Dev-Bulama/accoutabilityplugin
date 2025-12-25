@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Altitude Within - Accountability Audit
  * Plugin URI: https://altitudewithin.com
- * Description: A comprehensive Personal Accountability Audit form with quiz functionality for Fluent Forms
- * Version: 1.0.0
+ * Description: A standalone Personal Accountability Audit form with quiz functionality - no external dependencies required
+ * Version: 2.0.0
  * Author: Altitude Within
  * Author URI: https://altitudewithin.com
  * License: GPL v2 or later
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ALTITUDE_AUDIT_VERSION', '1.0.0' );
+define( 'ALTITUDE_AUDIT_VERSION', '2.0.0' );
 define( 'ALTITUDE_AUDIT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ALTITUDE_AUDIT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'ALTITUDE_AUDIT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -59,18 +59,5 @@ function run_altitude_audit() {
     $plugin->run();
 }
 
-// Check for Fluent Forms before running
-add_action( 'plugins_loaded', function() {
-    if ( ! defined( 'FLUENTFORM' ) ) {
-        add_action( 'admin_notices', function() {
-            ?>
-            <div class="notice notice-error">
-                <p><?php esc_html_e( 'Altitude Within - Accountability Audit requires Fluent Forms to be installed and activated.', 'altitude-accountability-audit' ); ?></p>
-            </div>
-            <?php
-        });
-        return;
-    }
-
-    run_altitude_audit();
-});
+// Run the plugin
+add_action( 'plugins_loaded', 'run_altitude_audit' );

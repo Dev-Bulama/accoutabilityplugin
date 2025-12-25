@@ -63,8 +63,8 @@ class Altitude_Audit {
         // Form builder
         require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'includes/class-form-builder.php';
 
-        // Scoring engine
-        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'includes/class-scoring-engine.php';
+        // Form handler
+        require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'includes/class-form-handler.php';
 
         // Email handler
         require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'includes/class-email-handler.php';

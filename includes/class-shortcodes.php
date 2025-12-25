@@ -24,16 +24,8 @@ class Altitude_Audit_Shortcodes {
         // Hook: Before form
         do_action( 'altitude_audit_before_form' );
 
-        $form_id = Altitude_Audit_Form_Builder::get_form_id();
-
-        if ( ! $form_id ) {
-            return '<div class="altitude-audit-error">' .
-                   esc_html__( 'Audit form not found. Please contact the administrator.', 'altitude-accountability-audit' ) .
-                   '</div>';
-        }
-
-        // Use Fluent Forms shortcode to render the form
-        $output = do_shortcode( '[fluentform id="' . $form_id . '"]' );
+        // Render the standalone form
+        $output = Altitude_Audit_Form_Builder::render_form( $atts );
 
         // Hook: After form
         do_action( 'altitude_audit_after_form' );
