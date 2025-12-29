@@ -214,17 +214,17 @@ function altitude_audit_get_default_config() {
                 'icon' => '🕊️',
                 'questions' => array(
                     array(
-                        'label' => __( 'I know I should deepen my spiritual practice but keep putting it off.', 'altitude-accountability-audit' ),
+                        'label' => __( 'I pray more than I plan.', 'altitude-accountability-audit' ),
                         'name' => 'spiritual_q1',
                         'help_text' => '',
                     ),
                     array(
-                        'label' => __( 'I avoid reflecting on life\'s bigger questions and my purpose.', 'altitude-accountability-audit' ),
+                        'label' => __( 'I use "God\'s timing" to postpone hard work.', 'altitude-accountability-audit' ),
                         'name' => 'spiritual_q2',
                         'help_text' => '',
                     ),
                     array(
-                        'label' => __( 'I prioritize material success over spiritual growth and inner peace.', 'altitude-accountability-audit' ),
+                        'label' => __( 'I repeat cycles and call it "attack" instead of a pattern.', 'altitude-accountability-audit' ),
                         'name' => 'spiritual_q3',
                         'help_text' => '',
                     ),

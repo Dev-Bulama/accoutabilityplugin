@@ -611,6 +611,7 @@ jQuery(document).ready(function($) {
 	let selectedData = null;
 	let config = <?php echo json_encode( $config ); ?>;
 	let isDirty = false;
+	const ajaxurl = altitudeAuditAdmin.ajaxUrl; // WordPress ajaxurl for this plugin
 
 	// === CLICK TO SELECT ELEMENTS IN PREVIEW ===
 
