@@ -590,6 +590,11 @@ class Altitude_Audit_Admin {
             wp_send_json_error( array( 'message' => __( 'Category not found', 'altitude-accountability-audit' ) ) );
         }
 
+        // Ensure questions array exists
+        if ( ! isset( $config['categories'][ $category_key ]['questions'] ) || ! is_array( $config['categories'][ $category_key ]['questions'] ) ) {
+            $config['categories'][ $category_key ]['questions'] = array();
+        }
+
         $question_count = count( $config['categories'][ $category_key ]['questions'] ) + 1;
 
         $new_question = array(

@@ -74,14 +74,14 @@ class Altitude_Audit_Form_Builder {
                 // Render quiz questions by category
                 $question_num = 1;
                 foreach ( $config['categories'] as $category_key => $category ) {
-                    echo '<div class="altitude-form-section altitude-category-section" data-category="' . esc_attr( $category_key ) . '">';
+                    echo '<div class="altitude-form-section altitude-category-section" data-category="' . esc_attr( $category_key ) . '" data-category-key="' . esc_attr( $category_key ) . '">';
                     echo '<h3>' . esc_html( $category['icon'] ) . ' ' . esc_html( $category['label'] ) . '</h3>';
                     echo '<p class="category-description">' . esc_html( $category['description'] ) . '</p>';
 
                     foreach ( $category['questions'] as $index => $question ) {
                         $field_name = $category_key . '_q' . ( $index + 1 );
                         ?>
-                        <div class="altitude-question-wrapper">
+                        <div class="altitude-question-wrapper" data-question-index="<?php echo esc_attr( $index ); ?>">
                             <fieldset>
                                 <legend><?php echo esc_html( $question_num ) . '. ' . esc_html( $question['label'] ); ?> <span class="required">*</span></legend>
 
