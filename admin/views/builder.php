@@ -926,43 +926,36 @@ jQuery(document).ready(function($) {
 			description: $modal.find('.modal-category-description').val()
 		};
 
-		// Get all questions data
+		// Get all questions data - use actual index in DOM, not data attribute
 		const questionsData = [];
-		$modal.find('.edit-question-item').each(function() {
+		$modal.find('.edit-question-item').each(function(actualIndex) {
 			const $item = $(this);
-			const index = $item.data('question-index');
-			questionsData.push({
-				label: $item.find('.modal-question-label').val(),
-				help_text: $item.find('.modal-question-help').val(),
-				name: categoryKey + '_q' + (index + 1)
-			});
-		});
+			const questionText = $item.find('.modal-question-label').val().trim();
 
-		// Update category via AJAX
-		$.post(ajaxurl, {
-			action: 'altitude_audit_update_category',
-			nonce: altitudeAuditAdmin.nonce,
-			key: categoryKey,
-			data: JSON.stringify(categoryData)
-		}, function(response) {
-			if (response.success) {
-				// Update config
-				config.categories[categoryKey] = $.extend(config.categories[categoryKey], categoryData);
-				config.categories[categoryKey].questions = questionsData;
-
-				// Save questions
-				updateCategoryQuestions(categoryKey, questionsData);
-			} else {
-				alert(response.data.message || 'Error updating category');
+			// Only add if question text is not empty
+			if (questionText) {
+				questionsData.push({
+					label: questionText,
+					help_text: $item.find('.modal-question-help').val(),
+					name: categoryKey + '_q' + (actualIndex + 1)
+				});
 			}
 		});
-	});
 
-	// Update all questions for a category
-	function updateCategoryQuestions(categoryKey, questions) {
-		// Save entire category with questions
-		const categoryToSave = config.categories[categoryKey];
-		categoryToSave.questions = questions;
+		if (questionsData.length === 0) {
+			alert('Please add at least one question before saving.');
+			return;
+		}
+
+		// Save entire category with questions in one call
+		const categoryToSave = {
+			label: categoryData.label,
+			icon: categoryData.icon,
+			description: categoryData.description,
+			questions: questionsData
+		};
+
+		console.log('Saving category:', categoryKey, categoryToSave);
 
 		$.post(ajaxurl, {
 			action: 'altitude_audit_save_category_with_questions',
@@ -970,15 +963,19 @@ jQuery(document).ready(function($) {
 			key: categoryKey,
 			category: JSON.stringify(categoryToSave)
 		}, function(response) {
+			console.log('Save response:', response);
 			if (response.success) {
 				$('#edit-category-modal').fadeOut();
-				alert('Category and questions saved successfully!');
+				alert('Category and all questions saved successfully!');
 				location.reload();
 			} else {
-				alert('Error saving questions. Please try again.');
+				alert('Error: ' + (response.data.message || 'Failed to save. Please try again.'));
 			}
+		}).fail(function(xhr, status, error) {
+			console.error('AJAX Error:', status, error);
+			alert('Network error. Please check your connection and try again.');
 		});
-	}
+	});
 
 	// Add new question inline in modal
 	$(document).on('click', '.add-question-btn-inline', function() {
