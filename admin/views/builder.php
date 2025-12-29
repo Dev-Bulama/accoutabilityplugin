@@ -640,7 +640,19 @@ jQuery(document).ready(function($) {
 		if (!categoryKey || questionIndex === undefined) return;
 
 		const category = config.categories[categoryKey];
-		if (!category || !category.questions[questionIndex]) return;
+		if (!category) return;
+
+		// Ensure questions array exists
+		if (!category.questions || !Array.isArray(category.questions)) {
+			category.questions = [];
+			alert('This category has no questions. Please add a question first.');
+			return;
+		}
+
+		if (!category.questions[questionIndex]) {
+			alert('Question not found.');
+			return;
+		}
 
 		selectQuestion(categoryKey, questionIndex, category.questions[questionIndex]);
 	});
@@ -649,6 +661,13 @@ jQuery(document).ready(function($) {
 		selectedElement = key;
 		selectedType = 'category';
 		selectedData = category;
+
+		// Ensure questions array exists
+		if (!category.questions || !Array.isArray(category.questions)) {
+			category.questions = [];
+			// Update the config reference
+			config.categories[key].questions = [];
+		}
 
 		// Build questions HTML
 		let questionsHtml = '';
@@ -919,7 +938,24 @@ jQuery(document).ready(function($) {
 	$(document).on('click', '.question-sidebar-item', function() {
 		const categoryKey = $(this).data('category');
 		const index = $(this).data('index');
+
+		// Validate category and questions exist
+		if (!config.categories[categoryKey]) {
+			alert('Category not found.');
+			return;
+		}
+
+		if (!config.categories[categoryKey].questions || !Array.isArray(config.categories[categoryKey].questions)) {
+			alert('This category has no questions array.');
+			return;
+		}
+
 		const question = config.categories[categoryKey].questions[index];
+		if (!question) {
+			alert('Question not found.');
+			return;
+		}
+
 		selectQuestion(categoryKey, index, question);
 	});
 

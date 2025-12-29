@@ -11,8 +11,13 @@ if ( ! defined( 'WPINC' ) ) {
 
 // Handle form submission
 if ( isset( $_POST['altitude_audit_save_settings'] ) && check_admin_referer( 'altitude_audit_settings' ) ) {
-    $config = $_POST['altitude_audit_config'];
-    update_option( 'altitude_audit_config', $config );
+    // Get the admin instance to call sanitize_config
+    require_once ALTITUDE_AUDIT_PLUGIN_DIR . 'admin/class-admin.php';
+    $admin = new Altitude_Audit_Admin( 'altitude-accountability-audit', ALTITUDE_AUDIT_VERSION );
+
+    // Sanitize and save configuration (this preserves categories and scoring options)
+    $sanitized_config = $admin->sanitize_config( $_POST['altitude_audit_config'] );
+    update_option( 'altitude_audit_config', $sanitized_config );
 
     echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved successfully! Form will use new settings immediately.', 'altitude-accountability-audit' ) . '</p></div>';
 }
