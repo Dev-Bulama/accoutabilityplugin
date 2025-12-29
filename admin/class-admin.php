@@ -267,6 +267,7 @@ class Altitude_Audit_Admin {
         add_action( 'wp_ajax_altitude_audit_delete_question', array( $this, 'ajax_delete_question' ) );
         add_action( 'wp_ajax_altitude_audit_render_preview', array( $this, 'ajax_render_preview' ) );
         add_action( 'wp_ajax_altitude_audit_apply_template', array( $this, 'ajax_apply_template' ) );
+        add_action( 'wp_ajax_altitude_audit_save_category_with_questions', array( $this, 'ajax_save_category_with_questions' ) );
     }
 
     /**
@@ -287,11 +288,28 @@ class Altitude_Audit_Admin {
 
         // Sanitize form settings
         if ( isset( $input['form_settings'] ) ) {
+            // Custom allowed tags for thank you message (allows script tags for Tailwind, etc.)
+            $allowed_html = wp_kses_allowed_html( 'post' );
+            $allowed_html['script'] = array(
+                'src' => true,
+                'type' => true,
+            );
+            $allowed_html['section'] = array(
+                'class' => true,
+                'id' => true,
+            );
+            // Allow common attributes on all tags
+            foreach ( $allowed_html as $tag => $attributes ) {
+                $allowed_html[ $tag ]['class'] = true;
+                $allowed_html[ $tag ]['id'] = true;
+                $allowed_html[ $tag ]['style'] = true;
+            }
+
             $sanitized['form_settings'] = array(
                 'form_title' => sanitize_text_field( $input['form_settings']['form_title'] ),
                 'submit_button_text' => sanitize_text_field( $input['form_settings']['submit_button_text'] ),
                 'success_message' => isset( $input['form_settings']['success_message'] ) ? sanitize_textarea_field( $input['form_settings']['success_message'] ) : '',
-                'thank_you_message' => isset( $input['form_settings']['thank_you_message'] ) ? wp_kses_post( $input['form_settings']['thank_you_message'] ) : '',
+                'thank_you_message' => isset( $input['form_settings']['thank_you_message'] ) ? wp_kses( $input['form_settings']['thank_you_message'], $allowed_html ) : '',
             );
         } else {
             $sanitized['form_settings'] = $current_config['form_settings'];
@@ -678,6 +696,52 @@ class Altitude_Audit_Admin {
         update_option( 'altitude_audit_config', $config );
 
         wp_send_json_success( array( 'message' => __( 'Question deleted successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Save entire category with all questions.
+     */
+    public function ajax_save_category_with_questions() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $category_key = sanitize_key( $_POST['key'] ?? '' );
+        $category_data = json_decode( stripslashes( $_POST['category'] ?? '{}' ), true );
+
+        if ( ! $category_key || ! $category_data ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid category data', 'altitude-accountability-audit' ) ) );
+        }
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! isset( $config['categories'][ $category_key ] ) ) {
+            wp_send_json_error( array( 'message' => __( 'Category not found', 'altitude-accountability-audit' ) ) );
+        }
+
+        // Sanitize category fields
+        $config['categories'][ $category_key ]['label'] = sanitize_text_field( $category_data['label'] ?? '' );
+        $config['categories'][ $category_key ]['description'] = sanitize_textarea_field( $category_data['description'] ?? '' );
+        $config['categories'][ $category_key ]['icon'] = sanitize_text_field( $category_data['icon'] ?? '📝' );
+
+        // Sanitize and save questions
+        if ( isset( $category_data['questions'] ) && is_array( $category_data['questions'] ) ) {
+            $sanitized_questions = array();
+            foreach ( $category_data['questions'] as $index => $question ) {
+                $sanitized_questions[] = array(
+                    'label' => sanitize_textarea_field( $question['label'] ?? '' ),
+                    'help_text' => sanitize_text_field( $question['help_text'] ?? '' ),
+                    'name' => $category_key . '_q' . ( $index + 1 ),
+                );
+            }
+            $config['categories'][ $category_key ]['questions'] = $sanitized_questions;
+        }
+
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array( 'message' => __( 'Category and questions saved successfully!', 'altitude-accountability-audit' ) ) );
     }
 
     /**

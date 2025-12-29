@@ -244,6 +244,27 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 	</div>
 </div>
 
+<!-- Edit Category Modal (Comprehensive) -->
+<div id="edit-category-modal" class="altitude-modal altitude-modal-large" style="display:none;">
+	<div class="altitude-modal-overlay"></div>
+	<div class="altitude-modal-content">
+		<div class="altitude-modal-header">
+			<h2><?php esc_html_e( 'Edit Category', 'altitude-accountability-audit' ); ?></h2>
+			<button type="button" class="altitude-modal-close">&times;</button>
+		</div>
+		<div class="altitude-modal-body" id="edit-category-modal-body">
+			<!-- Content will be dynamically generated -->
+		</div>
+		<div class="altitude-modal-footer">
+			<button type="button" class="button button-primary button-large" id="save-category-changes-btn">
+				<span class="dashicons dashicons-yes"></span>
+				<?php esc_html_e( 'Save All Changes', 'altitude-accountability-audit' ); ?>
+			</button>
+			<button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Close', 'altitude-accountability-audit' ); ?></button>
+		</div>
+	</div>
+</div>
+
 <style>
 /* =======================
    BUILDER WRAPPER
@@ -578,6 +599,181 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 }
 
 /* =======================
+   MODAL STYLES
+   ======================= */
+.altitude-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 100000;
+}
+
+.altitude-modal-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+}
+
+.altitude-modal-content {
+	position: relative;
+	background: white;
+	max-width: 600px;
+	margin: 50px auto;
+	border-radius: 8px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	z-index: 100001;
+	max-height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+}
+
+.altitude-modal-large .altitude-modal-content {
+	max-width: 900px;
+}
+
+.altitude-modal-header {
+	padding: 20px 30px;
+	border-bottom: 1px solid #e5e5e5;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.altitude-modal-header h2 {
+	margin: 0;
+	font-size: 20px;
+	color: #667eea;
+}
+
+.altitude-modal-close {
+	background: none;
+	border: none;
+	font-size: 32px;
+	line-height: 1;
+	color: #999;
+	cursor: pointer;
+	padding: 0;
+	width: 32px;
+	height: 32px;
+}
+
+.altitude-modal-close:hover {
+	color: #333;
+}
+
+.altitude-modal-body {
+	padding: 30px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.altitude-modal-footer {
+	padding: 20px 30px;
+	border-top: 1px solid #e5e5e5;
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+}
+
+.edit-category-section {
+	background: #f7f9fc;
+	padding: 20px;
+	border-radius: 8px;
+	margin-bottom: 20px;
+	border: 1px solid #e5e5e5;
+}
+
+.edit-category-section h3 {
+	margin: 0 0 15px 0;
+	color: #667eea;
+	font-size: 16px;
+}
+
+.edit-category-section .form-field {
+	margin-bottom: 15px;
+}
+
+.edit-category-section .form-field:last-child {
+	margin-bottom: 0;
+}
+
+.edit-category-section label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 5px;
+	color: #333;
+	font-size: 13px;
+}
+
+.edit-category-section input[type="text"],
+.edit-category-section textarea {
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.edit-questions-list {
+	margin-top: 20px;
+}
+
+.edit-question-item {
+	background: white;
+	border: 1px solid #e5e5e5;
+	border-radius: 8px;
+	padding: 15px;
+	margin-bottom: 15px;
+}
+
+.edit-question-item-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 15px;
+}
+
+.edit-question-item-header h4 {
+	margin: 0;
+	color: #667eea;
+	font-size: 14px;
+}
+
+.edit-question-item-header .delete-question-btn-inline {
+	color: #dc3545;
+	text-decoration: none;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.edit-question-item-header .delete-question-btn-inline:hover {
+	text-decoration: underline;
+}
+
+.add-question-btn-inline {
+	width: 100%;
+	padding: 12px;
+	text-align: center;
+	border: 2px dashed #667eea;
+	background: #f0f3ff;
+	color: #667eea;
+	border-radius: 8px;
+	cursor: pointer;
+	font-weight: 600;
+	margin-top: 15px;
+}
+
+.add-question-btn-inline:hover {
+	background: #667eea;
+	color: white;
+}
+
+/* =======================
    RESPONSIVE
    ======================= */
 @media (max-width: 1400px) {
@@ -615,7 +811,7 @@ jQuery(document).ready(function($) {
 
 	// === CLICK TO SELECT ELEMENTS IN PREVIEW ===
 
-	// Select category
+	// Select category - open beautiful edit modal
 	$(document).on('click', '.form-preview-inner .altitude-category-section', function(e) {
 		e.stopPropagation();
 		const $section = $(this);
@@ -627,7 +823,7 @@ jQuery(document).ready(function($) {
 		const category = config.categories[categoryKey];
 		if (!category) return;
 
-		selectCategory(categoryKey, category);
+		openCategoryEditModal(categoryKey, category);
 	});
 
 	// Select question
@@ -655,6 +851,184 @@ jQuery(document).ready(function($) {
 		}
 
 		selectQuestion(categoryKey, questionIndex, category.questions[questionIndex]);
+	});
+
+	// Open comprehensive category edit modal with all questions
+	function openCategoryEditModal(key, category) {
+		// Ensure questions array exists
+		if (!category.questions || !Array.isArray(category.questions)) {
+			category.questions = [];
+			config.categories[key].questions = [];
+		}
+
+		// Build modal HTML
+		let modalHTML = `
+			<div class="edit-category-section">
+				<h3>Category Settings</h3>
+				<div class="form-field">
+					<label>Category Name</label>
+					<input type="text" class="modal-category-label" value="${escapeHtml(category.label || '')}" placeholder="e.g., Distraction">
+				</div>
+				<div class="form-field">
+					<label>Icon (Emoji)</label>
+					<input type="text" class="modal-category-icon" value="${escapeHtml(category.icon || '')}" maxlength="2" placeholder="📱">
+				</div>
+				<div class="form-field">
+					<label>Description</label>
+					<textarea class="modal-category-description" rows="3" placeholder="Describe this category...">${escapeHtml(category.description || '')}</textarea>
+				</div>
+			</div>
+
+			<div class="edit-category-section">
+				<h3>Questions (${category.questions.length})</h3>
+				<div class="edit-questions-list">`;
+
+		// Add each question
+		category.questions.forEach((q, index) => {
+			modalHTML += `
+				<div class="edit-question-item" data-question-index="${index}">
+					<div class="edit-question-item-header">
+						<h4>Question ${index + 1}</h4>
+						<a href="#" class="delete-question-btn-inline" data-index="${index}">Delete</a>
+					</div>
+					<div class="form-field">
+						<label>Question Text</label>
+						<textarea class="modal-question-label" rows="3" placeholder="Enter your question here...">${escapeHtml(q.label || '')}</textarea>
+					</div>
+					<div class="form-field">
+						<label>Help Text (Optional)</label>
+						<input type="text" class="modal-question-help" value="${escapeHtml(q.help_text || '')}" placeholder="Additional guidance...">
+					</div>
+				</div>`;
+		});
+
+		modalHTML += `
+				</div>
+				<div class="add-question-btn-inline">
+					<span class="dashicons dashicons-plus"></span> Add New Question
+				</div>
+			</div>`;
+
+		// Set modal content
+		$('#edit-category-modal-body').html(modalHTML);
+		$('#edit-category-modal').data('category-key', key).fadeIn();
+	}
+
+	// Save all changes from category edit modal
+	$(document).on('click', '#save-category-changes-btn', function() {
+		const categoryKey = $('#edit-category-modal').data('category-key');
+		const $modal = $('#edit-category-modal-body');
+
+		// Get category data
+		const categoryData = {
+			label: $modal.find('.modal-category-label').val(),
+			icon: $modal.find('.modal-category-icon').val(),
+			description: $modal.find('.modal-category-description').val()
+		};
+
+		// Get all questions data
+		const questionsData = [];
+		$modal.find('.edit-question-item').each(function() {
+			const $item = $(this);
+			const index = $item.data('question-index');
+			questionsData.push({
+				label: $item.find('.modal-question-label').val(),
+				help_text: $item.find('.modal-question-help').val(),
+				name: categoryKey + '_q' + (index + 1)
+			});
+		});
+
+		// Update category via AJAX
+		$.post(ajaxurl, {
+			action: 'altitude_audit_update_category',
+			nonce: altitudeAuditAdmin.nonce,
+			key: categoryKey,
+			data: JSON.stringify(categoryData)
+		}, function(response) {
+			if (response.success) {
+				// Update config
+				config.categories[categoryKey] = $.extend(config.categories[categoryKey], categoryData);
+				config.categories[categoryKey].questions = questionsData;
+
+				// Save questions
+				updateCategoryQuestions(categoryKey, questionsData);
+			} else {
+				alert(response.data.message || 'Error updating category');
+			}
+		});
+	});
+
+	// Update all questions for a category
+	function updateCategoryQuestions(categoryKey, questions) {
+		// Save entire category with questions
+		const categoryToSave = config.categories[categoryKey];
+		categoryToSave.questions = questions;
+
+		$.post(ajaxurl, {
+			action: 'altitude_audit_save_category_with_questions',
+			nonce: altitudeAuditAdmin.nonce,
+			key: categoryKey,
+			category: JSON.stringify(categoryToSave)
+		}, function(response) {
+			if (response.success) {
+				$('#edit-category-modal').fadeOut();
+				alert('Category and questions saved successfully!');
+				location.reload();
+			} else {
+				alert('Error saving questions. Please try again.');
+			}
+		});
+	}
+
+	// Add new question inline in modal
+	$(document).on('click', '.add-question-btn-inline', function() {
+		const $list = $(this).prev('.edit-questions-list');
+		const questionCount = $list.find('.edit-question-item').length;
+		const newIndex = questionCount;
+
+		const questionHTML = `
+			<div class="edit-question-item" data-question-index="${newIndex}">
+				<div class="edit-question-item-header">
+					<h4>Question ${newIndex + 1}</h4>
+					<a href="#" class="delete-question-btn-inline" data-index="${newIndex}">Delete</a>
+				</div>
+				<div class="form-field">
+					<label>Question Text</label>
+					<textarea class="modal-question-label" rows="3" placeholder="Enter your question here..."></textarea>
+				</div>
+				<div class="form-field">
+					<label>Help Text (Optional)</label>
+					<input type="text" class="modal-question-help" value="" placeholder="Additional guidance...">
+				</div>
+			</div>`;
+
+		$list.append(questionHTML);
+
+		// Update question count
+		$list.closest('.edit-category-section').find('h3').text(`Questions (${newIndex + 1})`);
+	});
+
+	// Delete question inline in modal
+	$(document).on('click', '.delete-question-btn-inline', function(e) {
+		e.preventDefault();
+		if (!confirm('Are you sure you want to delete this question?')) {
+			return;
+		}
+
+		const $item = $(this).closest('.edit-question-item');
+		$item.remove();
+
+		// Re-index remaining questions
+		const $list = $('.edit-questions-list');
+		$list.find('.edit-question-item').each(function(index) {
+			$(this).data('question-index', index);
+			$(this).find('h4').text('Question ' + (index + 1));
+			$(this).find('.delete-question-btn-inline').data('index', index);
+		});
+
+		// Update question count
+		const count = $list.find('.edit-question-item').length;
+		$list.closest('.edit-category-section').find('h3').text(`Questions (${count})`);
 	});
 
 	function selectCategory(key, category) {
