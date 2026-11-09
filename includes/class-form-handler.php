@@ -97,6 +97,9 @@ class Altitude_Audit_Form_Handler {
         $sanitized['first_name'] = isset( $post_data['first_name'] ) ? sanitize_text_field( $post_data['first_name'] ) : '';
         $sanitized['email'] = isset( $post_data['email'] ) ? sanitize_email( $post_data['email'] ) : '';
 
+        // Mandatory acceptance checkbox (must be explicitly ticked).
+        $sanitized['acceptance'] = isset( $post_data['altitude_audit_acceptance'] ) && '1' === (string) $post_data['altitude_audit_acceptance'];
+
         // Quiz answers
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
@@ -139,6 +142,11 @@ class Altitude_Audit_Form_Handler {
             $errors[] = __( 'Email address is required.', 'altitude-accountability-audit' );
         } elseif ( ! is_email( $form_data['email'] ) ) {
             $errors[] = __( 'Please provide a valid email address.', 'altitude-accountability-audit' );
+        }
+
+        // Validate mandatory acceptance (server-side; cannot be bypassed by disabling JavaScript).
+        if ( empty( $form_data['acceptance'] ) ) {
+            $errors[] = Altitude_Audit_Form_Builder::get_acceptance_error_message();
         }
 
         // Validate all questions are answered

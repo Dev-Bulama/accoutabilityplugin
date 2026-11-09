@@ -66,6 +66,14 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 						</div>
 					</div>
 				</div>
+
+				<!-- Drag-and-drop reordering (restored) -->
+				<div class="element-group altitude-structure-group">
+					<h4><?php esc_html_e( 'Form Structure', 'altitude-accountability-audit' ); ?></h4>
+					<p class="altitude-structure-hint"><?php esc_html_e( 'Drag to reorder categories and questions. The new order is saved automatically.', 'altitude-accountability-audit' ); ?></p>
+					<div class="altitude-structure-status" id="altitude-structure-status" role="status" aria-live="polite"></div>
+					<ul id="altitude-structure-list" class="altitude-structure-list"></ul>
+				</div>
 			</div>
 		</div>
 
@@ -798,6 +806,149 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 		display: none;
 	}
 }
+
+/* =======================
+   DRAG-AND-DROP (restored)
+   ======================= */
+.altitude-structure-hint {
+	margin: 0 0 10px 0;
+	font-size: 12px;
+	color: #666;
+}
+
+.altitude-structure-status {
+	min-height: 18px;
+	margin-bottom: 8px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.altitude-structure-status.is-saving { color: #666; }
+.altitude-structure-status.is-success { color: #1e7e34; }
+.altitude-structure-status.is-error { color: #dc3545; }
+
+.altitude-structure-list,
+.altitude-structure-questions {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.altitude-structure-list.is-saving {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.altitude-structure-category {
+	background: #fff;
+	border: 2px solid #e5e5e5;
+	border-radius: 8px;
+	margin: 0 0 10px 0;
+	overflow: hidden;
+}
+
+.altitude-structure-category-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #fff;
+	font-weight: 600;
+	font-size: 13px;
+	cursor: grab;
+}
+
+.altitude-structure-category-header .altitude-structure-count {
+	margin-left: auto;
+	font-weight: normal;
+	opacity: 0.85;
+	font-size: 11px;
+}
+
+.altitude-structure-questions {
+	padding: 6px;
+	min-height: 10px;
+}
+
+.altitude-structure-question {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	margin: 0 0 4px 0;
+	background: #f7f9fc;
+	border: 1px solid #e5e5e5;
+	border-radius: 4px;
+	font-size: 12px;
+	color: #333;
+	cursor: grab;
+}
+
+.altitude-structure-question:hover {
+	border-color: #667eea;
+	background: #f0f3ff;
+}
+
+.altitude-structure-question:last-child {
+	margin-bottom: 0;
+}
+
+.altitude-structure-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.altitude-structure-list .altitude-drag-handle {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	cursor: grab;
+	opacity: 0.7;
+	touch-action: none; /* lets touch devices drag via the handle without scrolling */
+}
+
+.altitude-structure-list .altitude-drag-handle:hover {
+	opacity: 1;
+}
+
+.altitude-structure-list .dragging {
+	opacity: 0.5;
+	cursor: grabbing;
+}
+
+.form-preview-container.altitude-drop-target {
+	outline: 3px dashed #667eea;
+	outline-offset: -10px;
+}
+
+.form-preview-inner .altitude-category-section.altitude-drop-hover {
+	background: rgba(102, 126, 234, 0.12);
+	outline: 2px dashed #667eea;
+}
+
+@media (max-width: 900px) {
+	/* Keep the drag-and-drop panel available on tablets and phones (stacked above the preview). */
+	.builder-left-panel {
+		display: flex;
+		border-right: none;
+		border-bottom: 1px solid #ddd;
+	}
+
+	.altitude-structure-list .altitude-drag-handle .dashicons {
+		font-size: 24px;
+		width: 24px;
+		height: 24px;
+	}
+
+	.altitude-structure-question {
+		padding: 10px 8px;
+		font-size: 13px;
+	}
+}
 </style>
 
 <script>
@@ -1274,6 +1425,7 @@ jQuery(document).ready(function($) {
 			if (response.success) {
 				$('.form-preview-inner').html(response.data.html);
 				addCategoryKeys();
+				renderStructure();
 			}
 		});
 	}
@@ -1329,6 +1481,298 @@ jQuery(document).ready(function($) {
 
 		selectQuestion(categoryKey, index, question);
 	});
+
+	// === DRAG AND DROP (restored) ===
+	//
+	// The original builder (v2) reordered categories/questions with native HTML5
+	// drag-and-drop and saved via the `altitude_audit_save_builder` AJAX action.
+	// The 3-panel redesign removed that list and its handlers; this restores them
+	// inside the current layout and saves the new order immediately, like every
+	// other edit in this builder.
+
+	const $structureList = $('#altitude-structure-list');
+	const $structureStatus = $('#altitude-structure-status');
+	const structureL10n = {
+		saving: '<?php echo esc_js( __( 'Saving new order…', 'altitude-accountability-audit' ) ); ?>',
+		saved: '<?php echo esc_js( __( 'Order saved.', 'altitude-accountability-audit' ) ); ?>',
+		failed: '<?php echo esc_js( __( 'Could not save the new order. Your previous order has been restored.', 'altitude-accountability-audit' ) ); ?>',
+		dragHandle: '<?php echo esc_js( __( 'Drag to reorder', 'altitude-accountability-audit' ) ); ?>',
+		untitled: '<?php echo esc_js( __( 'Untitled Question', 'altitude-accountability-audit' ) ); ?>',
+		questions: '<?php echo esc_js( __( 'questions', 'altitude-accountability-audit' ) ); ?>',
+		noQuestions: '<?php echo esc_js( __( 'No questions yet', 'altitude-accountability-audit' ) ); ?>',
+		dropOnCategory: '<?php echo esc_js( __( 'Drop the question onto a category in the preview.', 'altitude-accountability-audit' ) ); ?>'
+	};
+	let dragState = null; // { el, type: 'category'|'question', container, startOrder }
+	let isSavingOrder = false;
+
+	function getQuestionsArray(category) {
+		if (!category || !category.questions) return [];
+		return Array.isArray(category.questions) ? category.questions : Object.values(category.questions);
+	}
+
+	function escapeAttr(text) {
+		return escapeHtml(text == null ? '' : String(text)).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+	}
+
+	function setStructureStatus(message, state) {
+		$structureStatus.removeClass('is-saving is-success is-error').text(message || '');
+		if (state) $structureStatus.addClass('is-' + state);
+	}
+
+	function renderStructure() {
+		if (!$structureList.length) return;
+		$structureList.empty();
+
+		const categories = (config && config.categories) ? config.categories : {};
+		Object.keys(categories).forEach(function(key) {
+			const category = categories[key] || {};
+			const questions = getQuestionsArray(category);
+			let questionsHtml = '';
+
+			questions.forEach(function(q, index) {
+				const label = (q && q.label) ? q.label : structureL10n.untitled;
+				questionsHtml += '<li class="altitude-structure-question" draggable="true" data-index="' + index + '">' +
+					'<span class="altitude-drag-handle" title="' + escapeAttr(structureL10n.dragHandle) + '"><span class="dashicons dashicons-menu" aria-hidden="true"></span></span>' +
+					'<span class="altitude-structure-label" title="' + escapeAttr(label) + '">' + escapeHtml(label) + '</span>' +
+					'</li>';
+			});
+
+			if (!questions.length) {
+				questionsHtml = '<li class="altitude-structure-empty" style="color:#999;font-size:12px;padding:4px;">' + escapeHtml(structureL10n.noQuestions) + '</li>';
+			}
+
+			$structureList.append(
+				'<li class="altitude-structure-category" draggable="true" data-key="' + escapeAttr(key) + '">' +
+					'<div class="altitude-structure-category-header">' +
+						'<span class="altitude-drag-handle" title="' + escapeAttr(structureL10n.dragHandle) + '"><span class="dashicons dashicons-menu" aria-hidden="true"></span></span>' +
+						'<span class="altitude-structure-label">' + escapeHtml((category.icon ? category.icon + ' ' : '') + (category.label || key)) + '</span>' +
+						'<span class="altitude-structure-count">' + questions.length + ' ' + escapeHtml(structureL10n.questions) + '</span>' +
+					'</div>' +
+					'<ul class="altitude-structure-questions">' + questionsHtml + '</ul>' +
+				'</li>'
+			);
+		});
+	}
+
+	// Snapshot of the current DOM order: [{ key, questions: [originalIndex, ...] }, ...]
+	function readStructureOrder() {
+		const order = [];
+		$structureList.children('.altitude-structure-category').each(function() {
+			const questions = [];
+			$(this).children('.altitude-structure-questions').children('.altitude-structure-question').each(function() {
+				questions.push(parseInt($(this).attr('data-index'), 10));
+			});
+			order.push({ key: String($(this).attr('data-key')), questions: questions });
+		});
+		return order;
+	}
+
+	// From the original builder: find the sibling the dragged item should be placed before.
+	function getDragAfterElement(container, selector, y) {
+		const draggableElements = Array.prototype.filter.call(container.children, function(child) {
+			return child.matches(selector) && !child.classList.contains('dragging');
+		});
+
+		return draggableElements.reduce(function(closest, child) {
+			const box = child.getBoundingClientRect();
+			const offset = y - box.top - box.height / 2;
+
+			if (offset < 0 && offset > closest.offset) {
+				return { offset: offset, element: child };
+			}
+			return closest;
+		}, { offset: Number.NEGATIVE_INFINITY }).element;
+	}
+
+	function startStructureDrag(el, type) {
+		dragState = {
+			el: el,
+			type: type,
+			container: el.parentNode,
+			startOrder: JSON.stringify(readStructureOrder())
+		};
+		el.classList.add('dragging');
+	}
+
+	function moveStructureDrag(clientY) {
+		if (!dragState) return;
+		const selector = dragState.type === 'category' ? '.altitude-structure-category' : '.altitude-structure-question';
+		// Questions are only reordered within their own category (as in the original builder).
+		const container = dragState.container;
+		const afterElement = getDragAfterElement(container, selector, clientY);
+
+		if (afterElement == null) {
+			container.appendChild(dragState.el);
+		} else if (afterElement !== dragState.el) {
+			container.insertBefore(dragState.el, afterElement);
+		}
+	}
+
+	function endStructureDrag() {
+		if (!dragState) return;
+		const state = dragState;
+		dragState = null;
+		state.el.classList.remove('dragging');
+
+		if (JSON.stringify(readStructureOrder()) !== state.startOrder) {
+			saveStructureOrder();
+		}
+	}
+
+	function saveStructureOrder() {
+		if (isSavingOrder) return;
+		isSavingOrder = true;
+		$structureList.addClass('is-saving');
+		setStructureStatus(structureL10n.saving, 'saving');
+
+		$.post(ajaxurl, {
+			action: 'altitude_audit_save_builder',
+			nonce: altitudeAuditAdmin.nonce,
+			order: JSON.stringify(readStructureOrder())
+		}).done(function(response) {
+			if (response && response.success && response.data && response.data.categories) {
+				config.categories = response.data.categories;
+				setStructureStatus(structureL10n.saved, 'success');
+				renderStructure();
+				refreshPreview();
+			} else {
+				renderStructure(); // restore last saved order
+				setStructureStatus((response && response.data && response.data.message) ? response.data.message : structureL10n.failed, 'error');
+			}
+		}).fail(function() {
+			renderStructure(); // restore last saved order
+			setStructureStatus(structureL10n.failed, 'error');
+		}).always(function() {
+			isSavingOrder = false;
+			$structureList.removeClass('is-saving');
+		});
+	}
+
+	// Mouse / pen: native HTML5 drag-and-drop.
+	$structureList.on('dragstart', '.altitude-structure-question, .altitude-structure-category', function(e) {
+		// Nested items: only the innermost draggable handles the event.
+		if (e.target !== this || isSavingOrder) {
+			if (isSavingOrder) e.preventDefault();
+			return;
+		}
+		e.stopPropagation();
+		const type = $(this).hasClass('altitude-structure-category') ? 'category' : 'question';
+		startStructureDrag(this, type);
+
+		const dt = e.originalEvent && e.originalEvent.dataTransfer;
+		if (dt) {
+			dt.effectAllowed = 'move';
+			try { dt.setData('text/plain', type); } catch (err) {} // Firefox needs data to start a drag
+		}
+	});
+
+	$structureList.on('dragover', function(e) {
+		if (!dragState) return;
+		e.preventDefault();
+		if (e.originalEvent.dataTransfer) e.originalEvent.dataTransfer.dropEffect = 'move';
+		moveStructureDrag(e.originalEvent.clientY);
+	});
+
+	$structureList.on('drop', function(e) {
+		if (dragState) e.preventDefault();
+	});
+
+	$structureList.on('dragend', '.altitude-structure-question, .altitude-structure-category', function(e) {
+		if (dragState && dragState.el === this) {
+			e.stopPropagation();
+			endStructureDrag();
+		}
+	});
+
+	// Touch devices (phones/tablets): HTML5 drag events are not fired for touch,
+	// so the same reorder logic is driven from touch events on the drag handle.
+	if ($structureList.length) {
+		const listEl = $structureList[0];
+
+		listEl.addEventListener('touchstart', function(e) {
+			const handle = e.target.closest('.altitude-drag-handle');
+			if (!handle || isSavingOrder || e.touches.length !== 1) return;
+			const item = handle.closest('.altitude-structure-question, .altitude-structure-category');
+			if (!item) return;
+			e.preventDefault();
+			startStructureDrag(item, item.classList.contains('altitude-structure-category') ? 'category' : 'question');
+		}, { passive: false });
+
+		listEl.addEventListener('touchmove', function(e) {
+			if (!dragState) return;
+			e.preventDefault();
+			moveStructureDrag(e.touches[0].clientY);
+		}, { passive: false });
+
+		listEl.addEventListener('touchend', endStructureDrag);
+		listEl.addEventListener('touchcancel', endStructureDrag);
+	}
+
+	// === DRAG ELEMENTS FROM THE LIBRARY INTO THE PREVIEW ===
+	// The left-panel elements were marked draggable but had no handlers.
+
+	let libraryDragType = null;
+	const $previewArea = $('#form-preview-area');
+
+	$(document).on('dragstart', '.elements-library .element-item[draggable="true"]', function(e) {
+		if ($(this).hasClass('disabled')) {
+			e.preventDefault();
+			return;
+		}
+		libraryDragType = $(this).attr('data-element-type');
+		const dt = e.originalEvent && e.originalEvent.dataTransfer;
+		if (dt) {
+			dt.effectAllowed = 'copy';
+			try { dt.setData('text/plain', libraryDragType); } catch (err) {}
+		}
+		$previewArea.addClass('altitude-drop-target');
+	});
+
+	$(document).on('dragend', '.elements-library .element-item[draggable="true"]', function() {
+		libraryDragType = null;
+		$previewArea.removeClass('altitude-drop-target');
+		$('.form-preview-inner .altitude-drop-hover').removeClass('altitude-drop-hover');
+	});
+
+	$previewArea.on('dragover', function(e) {
+		if (!libraryDragType) return;
+		e.preventDefault();
+		if (e.originalEvent.dataTransfer) e.originalEvent.dataTransfer.dropEffect = 'copy';
+
+		if (libraryDragType === 'question') {
+			const $section = $(e.target).closest('.altitude-category-section');
+			$('.form-preview-inner .altitude-drop-hover').not($section).removeClass('altitude-drop-hover');
+			$section.addClass('altitude-drop-hover');
+		}
+	});
+
+	$previewArea.on('drop', function(e) {
+		if (!libraryDragType) {
+			if (dragState) e.preventDefault(); // a structure item dropped here must not insert text into preview inputs
+			return;
+		}
+		e.preventDefault(); // never drop text into the preview's inputs
+		const type = libraryDragType;
+		const $section = $(e.target).closest('.altitude-category-section');
+
+		libraryDragType = null;
+		$previewArea.removeClass('altitude-drop-target');
+		$('.form-preview-inner .altitude-drop-hover').removeClass('altitude-drop-hover');
+
+		if (type === 'category') {
+			$('#add-category-modal').fadeIn();
+		} else if (type === 'question') {
+			const categoryKey = $section.attr('data-category-key');
+			if (!categoryKey) {
+				alert(structureL10n.dropOnCategory);
+				return;
+			}
+			$('#new-question-category').val(categoryKey);
+			$('#add-question-modal').fadeIn();
+		}
+	});
+
+	renderStructure();
 
 	// === MODAL CONTROLS ===
 

@@ -308,6 +308,12 @@ Fields:
 
 ## Changelog
 
+### 3.0.1 - Maintenance Update
+- Added a mandatory acceptance checkbox above the Submit button (validated in the browser and on the server). The label can be edited under **Accountability Audit → Settings → Form Settings**.
+- Restored drag-and-drop reordering of categories and questions in the Form Builder (left panel, "Form Structure"); the order saves automatically. Works with mouse and touch.
+- Form elements in the builder library can be dragged into the preview again.
+- No database changes; existing settings and submissions are untouched.
+
 ### 2.0.0 - Standalone Release
 - **BREAKING**: Removed Fluent Forms dependency
 - Complete standalone form system

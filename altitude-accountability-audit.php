@@ -3,7 +3,7 @@
  * Plugin Name: Altitude Within - Accountability Audit
  * Plugin URI: https://altitudewithin.com
  * Description: A standalone Personal Accountability Audit form with quiz functionality - no external dependencies required
- * Version: 3.0.0
+ * Version: 3.0.1
  * Author: Tijani Bulama - Skillscore IT Solutions
  * Author URI: https://www.skillscore.com.ng
  * Developer: Tijani Bulama
@@ -24,7 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ALTITUDE_AUDIT_VERSION', '3.0.0' );
+define( 'ALTITUDE_AUDIT_VERSION', '3.0.1' );
 define( 'ALTITUDE_AUDIT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ALTITUDE_AUDIT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'ALTITUDE_AUDIT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

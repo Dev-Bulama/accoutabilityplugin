@@ -10,6 +10,56 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
+ * Get the default label for the mandatory acceptance checkbox.
+ *
+ * @return string
+ */
+function altitude_audit_get_default_acceptance_text() {
+    return __( 'I confirm that the information I have provided is accurate, and I agree to the accountability terms and conditions.', 'altitude-accountability-audit' );
+}
+
+/**
+ * Get the acceptance checkbox label for a configuration.
+ *
+ * Existing installations saved their config before this setting existed,
+ * so a missing or empty value falls back to the default wording.
+ *
+ * @param array|null $config Plugin configuration (optional).
+ * @return string Label (may contain limited inline HTML such as links).
+ */
+function altitude_audit_get_acceptance_text( $config = null ) {
+    if ( null === $config ) {
+        $config = get_option( 'altitude_audit_config', array() );
+    }
+
+    if ( is_array( $config ) && ! empty( $config['form_settings']['acceptance_text'] ) && is_string( $config['form_settings']['acceptance_text'] ) ) {
+        return $config['form_settings']['acceptance_text'];
+    }
+
+    return altitude_audit_get_default_acceptance_text();
+}
+
+/**
+ * Allowed HTML for the acceptance checkbox label (e.g. a link to the terms page).
+ *
+ * @return array
+ */
+function altitude_audit_acceptance_allowed_html() {
+    return array(
+        'a'      => array(
+            'href'   => true,
+            'target' => true,
+            'rel'    => true,
+            'title'  => true,
+        ),
+        'strong' => array(),
+        'em'     => array(),
+        'b'      => array(),
+        'i'      => array(),
+    );
+}
+
+/**
  * Get default audit configuration
  *
  * @return array
@@ -36,6 +86,7 @@ function altitude_audit_get_default_config() {
 </ul>
 <p><strong>Total Score:</strong> {total_score}/54</p>
 <p>Check your email for detailed results and personalized recommendations for your journey forward.</p>',
+            'acceptance_text' => altitude_audit_get_default_acceptance_text(),
         ),
         'email_settings' => array(
             'from_name' => get_bloginfo( 'name' ),

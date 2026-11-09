@@ -117,6 +117,27 @@ class Altitude_Audit_Form_Builder {
                 <input type="hidden" name="total_score" id="total_score" value="0">
                 <input type="hidden" name="accountability_type" id="accountability_type" value="">
 
+                <!-- Mandatory Acceptance -->
+                <div class="altitude-form-section altitude-acceptance">
+                    <div class="altitude-acceptance-field">
+                        <input
+                            type="checkbox"
+                            id="altitude_audit_acceptance"
+                            name="altitude_audit_acceptance"
+                            value="1"
+                            required
+                            aria-required="true"
+                            aria-describedby="altitude_audit_acceptance_error"
+                            data-error-message="<?php echo esc_attr( self::get_acceptance_error_message() ); ?>"
+                        >
+                        <label for="altitude_audit_acceptance">
+                            <?php echo wp_kses( altitude_audit_get_acceptance_text( $config ), altitude_audit_acceptance_allowed_html() ); ?>
+                            <span class="required">*</span>
+                        </label>
+                    </div>
+                    <p class="altitude-acceptance-error" id="altitude_audit_acceptance_error" role="alert" aria-live="assertive" hidden></p>
+                </div>
+
                 <!-- Submit Section -->
                 <div class="altitude-form-submit">
                     <button type="submit" class="altitude-btn altitude-btn-primary">
@@ -135,6 +156,15 @@ class Altitude_Audit_Form_Builder {
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Message shown when the acceptance checkbox is not ticked.
+     *
+     * @return string
+     */
+    public static function get_acceptance_error_message() {
+        return __( 'Please tick the confirmation box to accept the terms before submitting your audit.', 'altitude-accountability-audit' );
     }
 
     /**

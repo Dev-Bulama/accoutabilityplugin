@@ -55,6 +55,17 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
                     </tr>
                     <tr>
                         <th scope="row">
+                            <label for="acceptance_text"><?php esc_html_e( 'Acceptance Checkbox Label', 'altitude-accountability-audit' ); ?></label>
+                        </th>
+                        <td>
+                            <textarea id="acceptance_text" name="altitude_audit_config[form_settings][acceptance_text]" rows="3" class="large-text"><?php echo esc_textarea( altitude_audit_get_acceptance_text( $config ) ); ?></textarea>
+                            <p class="description">
+                                <?php esc_html_e( 'Shown next to the mandatory checkbox above the Submit button. Customers must tick it before they can submit. Simple links are allowed, e.g. <a href="https://example.com/terms">terms and conditions</a>. Leave empty to use the default wording.', 'altitude-accountability-audit' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
                             <label for="thank_you_message"><?php esc_html_e( 'Thank You Message (HTML)', 'altitude-accountability-audit' ); ?></label>
                             <p class="description"><?php esc_html_e( 'Shown immediately after form submission', 'altitude-accountability-audit' ); ?></p>
                         </th>

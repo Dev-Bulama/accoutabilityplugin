@@ -99,6 +99,44 @@
             $('#accountability_type').val(highestCategory);
         }
 
+        // Mandatory acceptance checkbox
+        var $acceptance = $form.find('#altitude_audit_acceptance');
+        var $acceptanceError = $form.find('#altitude_audit_acceptance_error');
+        var acceptanceMessage = $acceptance.data('error-message') || 'Please tick the confirmation box to accept the terms before submitting your audit.';
+
+        function syncAcceptanceValidity() {
+            if ($acceptance.length && typeof $acceptance[0].setCustomValidity === 'function') {
+                // Replaces the browser's generic "Please check this box" bubble with a clear message.
+                $acceptance[0].setCustomValidity($acceptance.is(':checked') ? '' : acceptanceMessage);
+            }
+        }
+
+        function showAcceptanceError() {
+            $acceptanceError.text(acceptanceMessage).prop('hidden', false);
+            $acceptance.attr('aria-invalid', 'true');
+            $acceptance.closest('.altitude-acceptance').addClass('has-error');
+        }
+
+        function clearAcceptanceError() {
+            $acceptanceError.text('').prop('hidden', true);
+            $acceptance.removeAttr('aria-invalid');
+            $acceptance.closest('.altitude-acceptance').removeClass('has-error');
+        }
+
+        $acceptance.on('change', function() {
+            syncAcceptanceValidity();
+            if ($acceptance.is(':checked')) {
+                clearAcceptanceError();
+            }
+        });
+
+        // Native browser validation fires this before the submit event.
+        $acceptance.on('invalid', function() {
+            showAcceptanceError();
+        });
+
+        syncAcceptanceValidity();
+
         // Listen for radio button changes
         $('input[type="radio"]').on('change', function() {
             updateProgress();
@@ -139,6 +177,14 @@
                 }
             }
 
+            // Check mandatory acceptance checkbox
+            var acceptanceMissing = $acceptance.length > 0 && !$acceptance.is(':checked');
+            if (acceptanceMissing) {
+                errors.push(acceptanceMessage);
+                showAcceptanceError();
+                isValid = false;
+            }
+
             if (!isValid) {
                 e.preventDefault();
 
@@ -146,6 +192,10 @@
 
                 // Scroll to first unanswered question
                 var $firstUnanswered = $('.altitude-question-wrapper').not('.answered').first();
+                if (!$firstUnanswered.length && acceptanceMissing) {
+                    $firstUnanswered = $acceptance.closest('.altitude-acceptance');
+                    $acceptance.trigger('focus');
+                }
                 if ($firstUnanswered.length) {
                     $('html, body').animate({
                         scrollTop: $firstUnanswered.offset().top - 100

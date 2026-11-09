@@ -469,6 +469,68 @@
 }
 
 /* =======================
+   MANDATORY ACCEPTANCE CHECKBOX
+   ======================= */
+
+.altitude-acceptance {
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+}
+
+.altitude-acceptance.has-error {
+    border-color: #e74c3c;
+}
+
+.altitude-acceptance-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.altitude-acceptance-field input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    margin: 2px 0 0 0;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.altitude-acceptance-field label {
+    flex: 1;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+    cursor: pointer;
+}
+
+.altitude-acceptance-field label a {
+    color: #667eea;
+    text-decoration: underline;
+}
+
+.altitude-acceptance-field .required {
+    color: #e74c3c;
+}
+
+.altitude-acceptance-field input[type="checkbox"]:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.altitude-acceptance-error {
+    margin: 12px 0 0 34px;
+    color: #c0392b;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.altitude-acceptance-error[hidden] {
+    display: none;
+}
+
+/* =======================
    RESPONSIVE DESIGN
    ======================= */
 
@@ -499,6 +561,14 @@
 
     .altitude-form-submit {
         flex-direction: column;
+    }
+
+    .altitude-acceptance-field label {
+        font-size: 15px;
+    }
+
+    .altitude-acceptance-error {
+        margin-left: 0;
     }
 
     .altitude-btn {

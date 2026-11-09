@@ -29,6 +29,14 @@ class Altitude_Audit_Admin {
     private $version;
 
     /**
+     * When true, sanitize_config() accepts the categories being saved instead of
+     * preserving the stored ones. Only set around the drag-and-drop reorder save.
+     *
+     * @var bool
+     */
+    private $allow_categories_update = false;
+
+    /**
      * Initialize the class.
      *
      * @param string $plugin_name The name of this plugin.
@@ -311,6 +319,13 @@ class Altitude_Audit_Admin {
                 'success_message' => isset( $input['form_settings']['success_message'] ) ? sanitize_textarea_field( $input['form_settings']['success_message'] ) : '',
                 'thank_you_message' => isset( $input['form_settings']['thank_you_message'] ) ? wp_kses( $input['form_settings']['thank_you_message'], $allowed_html ) : '',
             );
+
+            // Acceptance checkbox label: keep the stored value when the field was not submitted.
+            if ( isset( $input['form_settings']['acceptance_text'] ) ) {
+                $sanitized['form_settings']['acceptance_text'] = trim( wp_kses( wp_unslash( $input['form_settings']['acceptance_text'] ), altitude_audit_acceptance_allowed_html() ) );
+            } elseif ( isset( $current_config['form_settings']['acceptance_text'] ) ) {
+                $sanitized['form_settings']['acceptance_text'] = $current_config['form_settings']['acceptance_text'];
+            }
         } else {
             $sanitized['form_settings'] = $current_config['form_settings'];
         }
@@ -350,9 +365,14 @@ class Altitude_Audit_Admin {
             ? $current_config['scoring_options']
             : altitude_audit_get_default_config()['scoring_options'];
 
-        $sanitized['categories'] = isset( $current_config['categories'] ) && is_array( $current_config['categories'] )
-            ? $current_config['categories']
-            : altitude_audit_get_default_config()['categories'];
+        if ( $this->allow_categories_update && isset( $input['categories'] ) && is_array( $input['categories'] ) && ! empty( $input['categories'] ) ) {
+            // Validated drag-and-drop reorder from ajax_save_builder().
+            $sanitized['categories'] = $input['categories'];
+        } else {
+            $sanitized['categories'] = isset( $current_config['categories'] ) && is_array( $current_config['categories'] )
+                ? $current_config['categories']
+                : altitude_audit_get_default_config()['categories'];
+        }
 
         return $sanitized;
     }
@@ -471,6 +491,35 @@ class Altitude_Audit_Admin {
             wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
         }
 
+        // Drag-and-drop reorder: only re-sequences the categories/questions that are
+        // currently stored, so no question text, settings or other data can change.
+        if ( isset( $_POST['order'] ) ) {
+            $order = json_decode( wp_unslash( $_POST['order'] ), true );
+            $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+            $current_categories = ( is_array( $config ) && isset( $config['categories'] ) && is_array( $config['categories'] ) ) ? $config['categories'] : null;
+
+            $reordered = $current_categories ? $this->apply_builder_order( $current_categories, $order ) : false;
+
+            if ( false === $reordered ) {
+                wp_send_json_error( array( 'message' => __( 'The form has changed since this page was loaded. Please reload the Form Builder and try again.', 'altitude-accountability-audit' ) ) );
+            }
+
+            $config['categories'] = $reordered;
+
+            // sanitize_config() (registered as this option's sanitize callback) normally
+            // keeps the stored categories; allow this validated reorder through.
+            $this->allow_categories_update = true;
+            update_option( 'altitude_audit_config', $config );
+            $this->allow_categories_update = false;
+
+            $saved = get_option( 'altitude_audit_config', array() );
+
+            wp_send_json_success( array(
+                'message' => __( 'Order saved.', 'altitude-accountability-audit' ),
+                'categories' => isset( $saved['categories'] ) ? $saved['categories'] : $reordered,
+            ) );
+        }
+
         $categories = isset( $_POST['categories'] ) ? json_decode( stripslashes( $_POST['categories'] ), true ) : null;
 
         if ( ! $categories ) {
@@ -482,6 +531,79 @@ class Altitude_Audit_Admin {
         update_option( 'altitude_audit_config', $config );
 
         wp_send_json_success( array( 'message' => __( 'Form builder saved successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * Apply a drag-and-drop order to the stored categories.
+     *
+     * The order must reference exactly the stored categories and, for each one,
+     * be a permutation of its current question indexes. Anything else (e.g. the
+     * form was edited in another tab) is rejected so no data can be lost.
+     *
+     * @param array $categories Stored categories (key => category).
+     * @param mixed $order      Decoded order: list of array( 'key' => string, 'questions' => int[] ).
+     * @return array|false Reordered categories, or false if the order is invalid.
+     */
+    private function apply_builder_order( $categories, $order ) {
+        if ( ! is_array( $order ) || count( $order ) !== count( $categories ) ) {
+            return false;
+        }
+
+        $reordered = array();
+
+        foreach ( $order as $item ) {
+            if ( ! is_array( $item ) || ! isset( $item['key'] ) || ! is_scalar( $item['key'] ) ) {
+                return false;
+            }
+
+            $key = (string) $item['key'];
+
+            if ( ! array_key_exists( $key, $categories ) || array_key_exists( $key, $reordered ) ) {
+                return false;
+            }
+
+            $category = $categories[ $key ];
+
+            if ( is_array( $category ) && isset( $category['questions'] ) && is_array( $category['questions'] ) ) {
+                $questions = array_values( $category['questions'] );
+                $indexes = ( isset( $item['questions'] ) && is_array( $item['questions'] ) ) ? $item['questions'] : array();
+
+                if ( count( $indexes ) !== count( $questions ) ) {
+                    return false;
+                }
+
+                $new_questions = array();
+                $used = array();
+
+                foreach ( $indexes as $position => $index ) {
+                    if ( ! is_numeric( $index ) ) {
+                        return false;
+                    }
+
+                    $index = (int) $index;
+
+                    if ( ! isset( $questions[ $index ] ) || isset( $used[ $index ] ) ) {
+                        return false;
+                    }
+
+                    $used[ $index ] = true;
+                    $question = $questions[ $index ];
+
+                    // Field names follow position, matching the other Form Builder handlers.
+                    if ( is_array( $question ) ) {
+                        $question['name'] = $key . '_q' . ( $position + 1 );
+                    }
+
+                    $new_questions[] = $question;
+                }
+
+                $category['questions'] = $new_questions;
+            }
+
+            $reordered[ $key ] = $category;
+        }
+
+        return $reordered;
     }
 
     /**
