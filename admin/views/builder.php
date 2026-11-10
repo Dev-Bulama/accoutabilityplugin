@@ -1846,26 +1846,82 @@ jQuery(document).ready(function($) {
 		openAcceptanceModal();
 	});
 
-	$('#save-acceptance-btn').on('click', function() {
-		const $btn = $(this).prop('disabled', true);
+	const acceptanceL10n = {
+		saved: '<?php echo esc_js( __( 'Checkbox text saved. The live form now shows your new text.', 'altitude-accountability-audit' ) ); ?>',
+		failed: '<?php echo esc_js( __( 'Could not save the checkbox text. Please try again.', 'altitude-accountability-audit' ) ); ?>',
+		blocked: '<?php echo esc_js( __( 'The checkbox text was NOT saved: the server refused the request (HTTP %s). A security or firewall plugin may be blocking it. Please try again, or edit the text on the Accountability Audit Settings page.', 'altitude-accountability-audit' ) ); ?>',
+		unsaved: '<?php echo esc_js( __( 'Your checkbox text has not been saved yet. Click OK to save it now, or Cancel to discard your changes.', 'altitude-accountability-audit' ) ); ?>'
+	};
+	let savedAcceptanceText = $('#edit-acceptance-text').val();
 
-		$.post(ajaxurl, {
+	// Base64-encode the text so firewall rules that block HTML (e.g. links) in POST data don't drop the request.
+	function encodeAcceptanceText(text) {
+		try {
+			return window.btoa(unescape(encodeURIComponent(text)));
+		} catch (err) {
+			return '';
+		}
+	}
+
+	function saveAcceptanceText(onSaved) {
+		const $btn = $('#save-acceptance-btn').prop('disabled', true);
+		const text = $('#edit-acceptance-text').val();
+		const encoded = encodeAcceptanceText(text);
+		const data = {
 			action: 'altitude_audit_update_acceptance_text',
-			nonce: altitudeAuditAdmin.nonce,
-			acceptance_text: $('#edit-acceptance-text').val()
-		}).done(function(response) {
+			nonce: altitudeAuditAdmin.nonce
+		};
+
+		if (encoded) {
+			data.acceptance_text_b64 = encoded;
+		} else {
+			data.acceptance_text = text;
+		}
+
+		$.post(ajaxurl, data).done(function(response) {
 			if (response && response.success) {
-				$('#edit-acceptance-text').val(response.data.acceptance_text);
+				savedAcceptanceText = response.data.acceptance_text;
+				$('#edit-acceptance-text').val(savedAcceptanceText);
 				$('#edit-acceptance-modal').fadeOut(200);
 				refreshPreview();
+				alert(acceptanceL10n.saved);
+				if (typeof onSaved === 'function') onSaved();
 			} else {
-				alert((response && response.data && response.data.message) ? response.data.message : '<?php echo esc_js( __( 'Could not save the checkbox text. Please try again.', 'altitude-accountability-audit' ) ); ?>');
+				alert((response && response.data && response.data.message) ? response.data.message : acceptanceL10n.failed);
 			}
-		}).fail(function() {
-			alert('<?php echo esc_js( __( 'Network error. Please check your connection and try again.', 'altitude-accountability-audit' ) ); ?>');
+		}).fail(function(xhr) {
+			alert(acceptanceL10n.blocked.replace('%s', xhr && xhr.status ? xhr.status : '0'));
 		}).always(function() {
 			$btn.prop('disabled', false);
 		});
+	}
+
+	$('#save-acceptance-btn').on('click', function() {
+		saveAcceptanceText();
+	});
+
+	// Closing the window (×, Cancel or clicking outside) must not silently lose typed text.
+	// Bound before the generic modal-close handler so it can stop it.
+	$('#edit-acceptance-modal').find('.altitude-modal-close, .altitude-modal-overlay').on('click', function(e) {
+		if ($('#edit-acceptance-text').val() === savedAcceptanceText) {
+			return; // nothing changed; let the normal close happen
+		}
+
+		e.stopImmediatePropagation();
+
+		if (confirm(acceptanceL10n.unsaved)) {
+			saveAcceptanceText();
+		} else {
+			$('#edit-acceptance-text').val(savedAcceptanceText);
+			$('#edit-acceptance-modal').fadeOut(200);
+		}
+	});
+
+	// Warn before leaving the page with unsaved checkbox text.
+	$(window).on('beforeunload', function() {
+		if ($('#edit-acceptance-modal').is(':visible') && $('#edit-acceptance-text').val() !== savedAcceptanceText) {
+			return acceptanceL10n.unsaved;
+		}
 	});
 
 	// === MODAL CONTROLS ===

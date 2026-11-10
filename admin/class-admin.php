@@ -322,8 +322,16 @@ class Altitude_Audit_Admin {
             );
 
             // Acceptance checkbox label: keep the stored value when the field was not submitted.
-            if ( isset( $input['form_settings']['acceptance_text'] ) ) {
-                $sanitized['form_settings']['acceptance_text'] = trim( wp_kses( wp_unslash( $input['form_settings']['acceptance_text'] ), altitude_audit_acceptance_allowed_html() ) );
+            // If the Settings form submits the same text it was loaded with (the field was not
+            // edited), keep the stored value so an older open Settings page cannot overwrite a
+            // newer edit made in the Form Builder.
+            $acceptance_unchanged = isset( $input['form_settings']['acceptance_text'], $input['form_settings']['acceptance_text_original'], $current_config['form_settings']['acceptance_text'] )
+                && trim( str_replace( "\r\n", "\n", wp_unslash( $input['form_settings']['acceptance_text'] ) ) ) === trim( str_replace( "\r\n", "\n", wp_unslash( $input['form_settings']['acceptance_text_original'] ) ) );
+
+            if ( $acceptance_unchanged ) {
+                $sanitized['form_settings']['acceptance_text'] = $current_config['form_settings']['acceptance_text'];
+            } elseif ( isset( $input['form_settings']['acceptance_text'] ) ) {
+                $sanitized['form_settings']['acceptance_text'] = trim( wp_kses( str_replace( "\r\n", "\n", wp_unslash( $input['form_settings']['acceptance_text'] ) ), altitude_audit_acceptance_allowed_html() ) );
             } elseif ( isset( $current_config['form_settings']['acceptance_text'] ) ) {
                 $sanitized['form_settings']['acceptance_text'] = $current_config['form_settings']['acceptance_text'];
             }
@@ -877,7 +885,26 @@ class Altitude_Audit_Admin {
             wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
         }
 
-        $text = isset( $_POST['acceptance_text'] ) ? trim( wp_kses( wp_unslash( $_POST['acceptance_text'] ), altitude_audit_acceptance_allowed_html() ) ) : '';
+        $raw = null;
+
+        // Preferred: base64-encoded text (avoids firewalls that block HTML/links in POST data).
+        if ( isset( $_POST['acceptance_text_b64'] ) ) {
+            $decoded = base64_decode( wp_unslash( $_POST['acceptance_text_b64'] ), true );
+
+            if ( false === $decoded || '' === wp_check_invalid_utf8( $decoded ) && '' !== $decoded ) {
+                wp_send_json_error( array( 'message' => __( 'The checkbox text could not be read. Please try again.', 'altitude-accountability-audit' ) ) );
+            }
+
+            $raw = $decoded;
+        } elseif ( isset( $_POST['acceptance_text'] ) ) {
+            $raw = wp_unslash( $_POST['acceptance_text'] );
+        }
+
+        if ( null === $raw ) {
+            wp_send_json_error( array( 'message' => __( 'No checkbox text was received. Please try again.', 'altitude-accountability-audit' ) ) );
+        }
+
+        $text = trim( wp_kses( str_replace( "\r\n", "\n", $raw ), altitude_audit_acceptance_allowed_html() ) );
 
         $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
 
@@ -892,6 +919,14 @@ class Altitude_Audit_Admin {
         // Only this one setting changes; everything else is saved back as stored.
         $config['form_settings']['acceptance_text'] = $text;
         update_option( 'altitude_audit_config', $config );
+
+        // Confirm it was really stored before reporting success.
+        $stored = get_option( 'altitude_audit_config', array() );
+        $stored_text = isset( $stored['form_settings']['acceptance_text'] ) ? $stored['form_settings']['acceptance_text'] : null;
+
+        if ( $stored_text !== $text && wp_unslash( (string) $stored_text ) !== wp_unslash( $text ) ) {
+            wp_send_json_error( array( 'message' => __( 'The checkbox text could not be saved to the database. Another plugin may be preventing changes to the plugin settings.', 'altitude-accountability-audit' ) ) );
+        }
 
         wp_send_json_success( array(
             'message' => __( 'Checkbox text saved.', 'altitude-accountability-audit' ),
