@@ -276,6 +276,7 @@ class Altitude_Audit_Admin {
         add_action( 'wp_ajax_altitude_audit_render_preview', array( $this, 'ajax_render_preview' ) );
         add_action( 'wp_ajax_altitude_audit_apply_template', array( $this, 'ajax_apply_template' ) );
         add_action( 'wp_ajax_altitude_audit_save_category_with_questions', array( $this, 'ajax_save_category_with_questions' ) );
+        add_action( 'wp_ajax_altitude_audit_update_acceptance_text', array( $this, 'ajax_update_acceptance_text' ) );
     }
 
     /**
@@ -864,6 +865,38 @@ class Altitude_Audit_Admin {
         update_option( 'altitude_audit_config', $config );
 
         wp_send_json_success( array( 'message' => __( 'Category and questions saved successfully!', 'altitude-accountability-audit' ) ) );
+    }
+
+    /**
+     * AJAX: Update the acceptance checkbox text (Form Builder).
+     */
+    public function ajax_update_acceptance_text() {
+        check_ajax_referer( 'altitude_audit_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied', 'altitude-accountability-audit' ) ) );
+        }
+
+        $text = isset( $_POST['acceptance_text'] ) ? trim( wp_kses( wp_unslash( $_POST['acceptance_text'] ), altitude_audit_acceptance_allowed_html() ) ) : '';
+
+        $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config() );
+
+        if ( ! is_array( $config ) ) {
+            wp_send_json_error( array( 'message' => __( 'Configuration could not be loaded.', 'altitude-accountability-audit' ) ) );
+        }
+
+        if ( ! isset( $config['form_settings'] ) || ! is_array( $config['form_settings'] ) ) {
+            $config['form_settings'] = altitude_audit_get_default_config()['form_settings'];
+        }
+
+        // Only this one setting changes; everything else is saved back as stored.
+        $config['form_settings']['acceptance_text'] = $text;
+        update_option( 'altitude_audit_config', $config );
+
+        wp_send_json_success( array(
+            'message' => __( 'Checkbox text saved.', 'altitude-accountability-audit' ),
+            'acceptance_text' => altitude_audit_get_acceptance_text(),
+        ) );
     }
 
     /**

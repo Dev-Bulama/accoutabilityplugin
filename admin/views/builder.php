@@ -65,6 +65,13 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 							<small><?php esc_html_e( 'Name & Email (built-in)', 'altitude-accountability-audit' ); ?></small>
 						</div>
 					</div>
+					<div class="element-item" id="edit-acceptance-element" role="button" tabindex="0" title="<?php esc_attr_e( 'Click to edit the acceptance checkbox text', 'altitude-accountability-audit' ); ?>">
+						<span class="element-icon">☑️</span>
+						<div class="element-info">
+							<strong><?php esc_html_e( 'Acceptance Checkbox', 'altitude-accountability-audit' ); ?></strong>
+							<small><?php esc_html_e( 'Required (built-in) — click to edit text', 'altitude-accountability-audit' ); ?></small>
+						</div>
+					</div>
 				</div>
 
 				<!-- Drag-and-drop reordering (restored) -->
@@ -247,6 +254,28 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 		</div>
 		<div class="altitude-modal-footer">
 			<button type="button" class="button button-primary" id="create-question-btn"><?php esc_html_e( 'Create Question', 'altitude-accountability-audit' ); ?></button>
+			<button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
+		</div>
+	</div>
+</div>
+
+<!-- Edit Acceptance Checkbox Modal -->
+<div id="edit-acceptance-modal" class="altitude-modal" style="display:none;">
+	<div class="altitude-modal-overlay"></div>
+	<div class="altitude-modal-content">
+		<div class="altitude-modal-header">
+			<h2><?php esc_html_e( 'Edit Acceptance Checkbox', 'altitude-accountability-audit' ); ?></h2>
+			<button type="button" class="altitude-modal-close">&times;</button>
+		</div>
+		<div class="altitude-modal-body">
+			<p>
+				<label for="edit-acceptance-text"><strong><?php esc_html_e( 'Checkbox Text', 'altitude-accountability-audit' ); ?></strong></label>
+				<textarea id="edit-acceptance-text" rows="4" class="large-text"><?php echo esc_textarea( altitude_audit_get_acceptance_text( $config ) ); ?></textarea>
+			</p>
+			<p class="description"><?php esc_html_e( 'Customers must tick this box before submitting. Simple links are allowed, e.g. <a href="https://example.com/terms">terms and conditions</a>. Leave empty to use the default wording.', 'altitude-accountability-audit' ); ?></p>
+		</div>
+		<div class="altitude-modal-footer">
+			<button type="button" class="button button-primary" id="save-acceptance-btn"><?php esc_html_e( 'Save Text', 'altitude-accountability-audit' ); ?></button>
 			<button type="button" class="button altitude-modal-close"><?php esc_html_e( 'Cancel', 'altitude-accountability-audit' ); ?></button>
 		</div>
 	</div>
@@ -805,6 +834,26 @@ $config = get_option( 'altitude_audit_config', altitude_audit_get_default_config
 	.builder-right-panel {
 		display: none;
 	}
+}
+
+#edit-acceptance-modal .altitude-modal-footer .button.altitude-modal-close {
+	width: auto;
+	height: auto;
+	font-size: 13px;
+	line-height: 2.15384615;
+	padding: 0 10px;
+	color: #2271b1;
+	border: 1px solid #2271b1;
+	background: #f6f7f7;
+}
+
+.form-preview-inner .altitude-acceptance {
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.form-preview-inner .altitude-acceptance:hover {
+	outline: 2px solid #667eea;
 }
 
 /* =======================
@@ -1773,6 +1822,51 @@ jQuery(document).ready(function($) {
 	});
 
 	renderStructure();
+
+	// === EDIT ACCEPTANCE CHECKBOX TEXT ===
+
+	function openAcceptanceModal() {
+		$('#edit-acceptance-modal').fadeIn(200, function() {
+			$('#edit-acceptance-text').trigger('focus');
+		});
+	}
+
+	$(document).on('click', '#edit-acceptance-element', openAcceptanceModal);
+	$(document).on('keydown', '#edit-acceptance-element', function(e) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			openAcceptanceModal();
+		}
+	});
+
+	// Click the checkbox block in the preview to edit it (like categories/questions).
+	$(document).on('click', '.form-preview-inner .altitude-acceptance', function(e) {
+		e.preventDefault(); // don't toggle the preview checkbox or follow links
+		e.stopPropagation();
+		openAcceptanceModal();
+	});
+
+	$('#save-acceptance-btn').on('click', function() {
+		const $btn = $(this).prop('disabled', true);
+
+		$.post(ajaxurl, {
+			action: 'altitude_audit_update_acceptance_text',
+			nonce: altitudeAuditAdmin.nonce,
+			acceptance_text: $('#edit-acceptance-text').val()
+		}).done(function(response) {
+			if (response && response.success) {
+				$('#edit-acceptance-text').val(response.data.acceptance_text);
+				$('#edit-acceptance-modal').fadeOut(200);
+				refreshPreview();
+			} else {
+				alert((response && response.data && response.data.message) ? response.data.message : '<?php echo esc_js( __( 'Could not save the checkbox text. Please try again.', 'altitude-accountability-audit' ) ); ?>');
+			}
+		}).fail(function() {
+			alert('<?php echo esc_js( __( 'Network error. Please check your connection and try again.', 'altitude-accountability-audit' ) ); ?>');
+		}).always(function() {
+			$btn.prop('disabled', false);
+		});
+	});
 
 	// === MODAL CONTROLS ===
 

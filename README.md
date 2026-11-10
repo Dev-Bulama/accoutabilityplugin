@@ -310,6 +310,7 @@ Fields:
 
 ### 3.0.1 - Maintenance Update
 - Added a mandatory acceptance checkbox above the Submit button (validated in the browser and on the server). The label can be edited under **Accountability Audit → Settings → Form Settings**.
+- The checkbox text can also be edited in the **Form Builder**: click the checkbox in the preview, or "Acceptance Checkbox" in the left panel.
 - Restored drag-and-drop reordering of categories and questions in the Form Builder (left panel, "Form Structure"); the order saves automatically. Works with mouse and touch.
 - Form elements in the builder library can be dragged into the preview again.
 - No database changes; existing settings and submissions are untouched.
