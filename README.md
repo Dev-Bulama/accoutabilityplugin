@@ -313,6 +313,7 @@ Fields:
 - The checkbox text can also be edited in the **Form Builder**: click the checkbox in the preview, or "Acceptance Checkbox" in the left panel.
 - Restored drag-and-drop reordering of categories and questions in the Form Builder (left panel, "Form Structure"); the order saves automatically. Works with mouse and touch.
 - Form elements in the builder library can be dragged into the preview again.
+- Fixed plugin settings not saving on databases that use the older `utf8` character set (the emoji category icons made MySQL reject every save). Emoji are now stored as HTML entities on those databases only and restored when read.
 - No database changes; existing settings and submissions are untouched.
 
 ### 2.0.0 - Standalone Release

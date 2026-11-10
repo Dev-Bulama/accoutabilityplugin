@@ -10,6 +10,134 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 /**
+ * Whether the options table can store 4-byte UTF-8 characters (emoji).
+ *
+ * Older databases use the "utf8" (utf8mb3) character set. MySQL refuses the
+ * whole query when a value contains emoji, so the plugin settings (which
+ * contain emoji category icons) could never be saved on those sites.
+ *
+ * @return bool
+ */
+function altitude_audit_options_support_utf8mb4() {
+    static $supported = null;
+
+    if ( null !== $supported ) {
+        return $supported;
+    }
+
+    global $wpdb;
+    $charset = false;
+
+    if ( isset( $wpdb ) && method_exists( $wpdb, 'get_col_charset' ) ) {
+        $charset = $wpdb->get_col_charset( $wpdb->options, 'option_value' );
+    }
+
+    if ( ! is_string( $charset ) || '' === $charset ) {
+        $charset = isset( $wpdb->charset ) ? $wpdb->charset : '';
+    }
+
+    $supported = ( 'utf8mb4' === strtolower( $charset ) );
+
+    return $supported;
+}
+
+/**
+ * Replace 4-byte UTF-8 characters (emoji) with HTML numeric entities, recursively.
+ *
+ * @param mixed $value Value.
+ * @return mixed
+ */
+function altitude_audit_encode_4byte_chars( $value ) {
+    if ( is_array( $value ) ) {
+        foreach ( $value as $key => $item ) {
+            $value[ $key ] = altitude_audit_encode_4byte_chars( $item );
+        }
+        return $value;
+    }
+
+    if ( ! is_string( $value ) || '' === $value ) {
+        return $value;
+    }
+
+    $encoded = preg_replace_callback(
+        '/[\x{10000}-\x{10FFFF}]/u',
+        function ( $match ) {
+            $c = $match[0];
+            $code = ( ( ord( $c[0] ) & 0x07 ) << 18 ) | ( ( ord( $c[1] ) & 0x3F ) << 12 ) | ( ( ord( $c[2] ) & 0x3F ) << 6 ) | ( ord( $c[3] ) & 0x3F );
+            return '&#x' . dechex( $code ) . ';';
+        },
+        $value
+    );
+
+    return null === $encoded ? $value : $encoded;
+}
+
+/**
+ * Turn HTML numeric entities for 4-byte characters back into the characters, recursively.
+ *
+ * @param mixed $value Value.
+ * @return mixed
+ */
+function altitude_audit_decode_4byte_entities( $value ) {
+    if ( is_array( $value ) ) {
+        foreach ( $value as $key => $item ) {
+            $value[ $key ] = altitude_audit_decode_4byte_entities( $item );
+        }
+        return $value;
+    }
+
+    if ( ! is_string( $value ) || false === strpos( $value, '&#' ) ) {
+        return $value;
+    }
+
+    $decoded = preg_replace_callback(
+        '/&#(?:x(1[0-9a-fA-F]{4}|10[0-9a-fA-F]{4})|(6[5-9][0-9]{3}|[7-9][0-9]{4}|[1-9][0-9]{5,6}));/',
+        function ( $match ) {
+            $code = ! empty( $match[1] ) ? hexdec( $match[1] ) : (int) $match[2];
+
+            if ( $code < 0x10000 || $code > 0x10FFFF ) {
+                return $match[0];
+            }
+
+            return html_entity_decode( '&#x' . dechex( $code ) . ';', ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+        },
+        $value
+    );
+
+    return null === $decoded ? $value : $decoded;
+}
+
+/**
+ * Before the plugin configuration is written: if the database cannot store
+ * emoji, store them as HTML entities so the save is not rejected.
+ *
+ * @param mixed $value New option value.
+ * @return mixed
+ */
+function altitude_audit_prepare_config_for_db( $value ) {
+    if ( altitude_audit_options_support_utf8mb4() ) {
+        return $value;
+    }
+
+    return altitude_audit_encode_4byte_chars( $value );
+}
+// Runs last in sanitize_option(), which WordPress applies on both update_option() and add_option()
+// (the option row does not exist yet on sites where it could never be saved).
+add_filter( 'sanitize_option_altitude_audit_config', 'altitude_audit_prepare_config_for_db', 99 );
+
+/**
+ * When the plugin configuration is read: restore any emoji stored as entities,
+ * so the rest of the plugin always sees the original characters.
+ *
+ * @param mixed $value Option value.
+ * @return mixed
+ */
+function altitude_audit_restore_config_from_db( $value ) {
+    return altitude_audit_decode_4byte_entities( $value );
+}
+add_filter( 'option_altitude_audit_config', 'altitude_audit_restore_config_from_db' );
+
+/**
  * Get the default label for the mandatory acceptance checkbox.
  *
  * @return string

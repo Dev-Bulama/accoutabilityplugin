@@ -523,6 +523,11 @@ class Altitude_Audit_Admin {
 
             $saved = get_option( 'altitude_audit_config', array() );
 
+            // Confirm the new order really reached the database.
+            if ( ! isset( $saved['categories'] ) || ! is_array( $saved['categories'] ) || serialize( $saved['categories'] ) !== serialize( $reordered ) ) {
+                wp_send_json_error( array( 'message' => __( 'The new order could not be saved to the database. Please try again.', 'altitude-accountability-audit' ) ) );
+            }
+
             wp_send_json_success( array(
                 'message' => __( 'Order saved.', 'altitude-accountability-audit' ),
                 'categories' => isset( $saved['categories'] ) ? $saved['categories'] : $reordered,
